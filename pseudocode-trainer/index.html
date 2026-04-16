@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IHK Pseudocode Trainer – FIAE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-bg:   #1e293b;
+      --sidebar-txt:  #94a3b8;
+      --accent:       #3b82f6;
+      --bg:           #f1f5f9;
+      --card:         #ffffff;
+      --border:       #e2e8f0;
+      --txt:          #1e293b;
+      --muted:        #64748b;
+      --green:        #16a34a;  --green-bg:     #f0fdf4;  --green-bd:     #bbf7d0;
+      --amber:        #d97706;  --amber-bg:     #fffbeb;  --amber-bd:     #fde68a;
+      --red:          #dc2626;  --red-bg:       #fef2f2;  --red-bd:       #fecaca;
+      --blue:         #2563eb;  --blue-bg:      #eff6ff;  --blue-bd:      #bfdbfe;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--txt);
+    }
+
+    /* ── SIDEBAR ─────────────────────────────── */
+    #sidebar {
+      width: 270px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #sb-head {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid #334155;
+    }
+    #sb-head h1 { font-size: .95rem; font-weight: 700; color: #f1f5f9; }
+    #sb-head p  { font-size: .72rem; color: var(--sidebar-txt); margin-top: 3px; }
+
+    #sb-progress {
+      padding: 10px 16px;
+      border-bottom: 1px solid #334155;
+    }
+    #sb-prog-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .7rem;
+      color: var(--sidebar-txt);
+      margin-bottom: 5px;
+    }
+    #sb-prog-bar { height: 4px; background: #334155; border-radius: 2px; overflow: hidden; }
+    #sb-prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .35s ease; }
+
+    #ex-list { flex: 1; overflow-y: auto; padding: 6px 0 0; }
+    .cat-header {
+      padding: 12px 16px 3px;
+      font-size: .62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #475569;
+    }
+    .ex-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background .12s;
+    }
+    .ex-item:hover { background: #334155; }
+    .ex-item.active { background: #1d4ed8; border-left-color: #60a5fa; }
+    .ex-dot {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .68rem;
+      flex-shrink: 0;
+    }
+    .dot-todo   { background: #334155; color: #64748b; }
+    .dot-done   { background: #16a34a; color: #fff; }
+    .dot-active { background: #3b82f6; color: #fff; }
+    .ex-label { font-size: .78rem; color: var(--sidebar-txt); flex: 1; }
+    .ex-item.active .ex-label { color: #fff; }
+    .lv {
+      font-size: .6rem; padding: 1px 5px;
+      border-radius: 3px; font-weight: 600; flex-shrink: 0;
+    }
+    .lv-leicht { background: #dcfce7; color: #166534; }
+    .lv-mittel { background: #fef9c3; color: #854d0e; }
+    .lv-schwer { background: #fee2e2; color: #991b1b; }
+
+    #syn-btn {
+      margin: 10px 14px 14px;
+      padding: 8px 12px;
+      background: #334155;
+      border: none;
+      border-radius: 6px;
+      color: #94a3b8;
+      font-size: .75rem;
+      cursor: pointer;
+    }
+    #syn-btn:hover { background: #475569; color: #f1f5f9; }
+
+    /* ── MAIN ─────────────────────────────────── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    #content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    /* Left: description */
+    #desc-panel {
+      padding: 24px;
+      overflow-y: auto;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+    }
+    #ex-meta { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+    .badge {
+      font-size: .68rem; padding: 2px 8px;
+      border-radius: 12px; font-weight: 600;
+    }
+    .badge-cat { background: #e2e8f0; color: #475569; }
+    #ex-num { font-size: .72rem; color: var(--muted); }
+
+    #ex-title { font-size: 1.35rem; font-weight: 700; margin-bottom: 14px; }
+
+    #ex-body { font-size: .87rem; line-height: 1.75; }
+    #ex-body h3 {
+      font-size: .75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); margin: 18px 0 7px;
+    }
+    .ex-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 11px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      margin: 6px 0;
+    }
+    .note {
+      background: var(--blue-bg);
+      border: 1px solid var(--blue-bd);
+      border-radius: 7px;
+      padding: 10px 13px;
+      font-size: .82rem;
+      color: #1e40af;
+      margin-top: 14px;
+    }
+
+    /* Right: editor + feedback */
+    #ed-panel { display: flex; flex-direction: column; overflow: hidden; }
+
+    #ed-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    #ed-topbar span { font-size: .78rem; font-weight: 600; color: var(--muted); }
+    #attempt-info { font-size: .72rem; color: var(--muted); }
+
+    #code-wrap { flex: 1; position: relative; overflow: hidden; }
+    #code-editor {
+      width: 100%; height: 100%;
+      padding: 16px;
+      font-family: 'Courier New', 'Consolas', monospace;
+      font-size: .84rem; line-height: 1.65;
+      border: none; outline: none; resize: none;
+      background: #0f172a; color: #e2e8f0;
+      tab-size: 4;
+    }
+    #code-editor::placeholder { color: #334155; }
+
+    #ed-actions {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 7px 15px;
+      border-radius: 6px; border: none;
+      font-size: .8rem; font-weight: 600;
+      cursor: pointer; transition: background .12s;
+    }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-sec { background: var(--bg); color: var(--txt); border: 1px solid var(--border); }
+    .btn-sec:hover { background: var(--border); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: #15803d; }
+    #kbd-hint { margin-left: auto; font-size: .7rem; color: var(--muted); }
+    kbd {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1px 4px; font-size: .67rem; margin: 0 1px;
+    }
+
+    /* Feedback */
+    #feedback {
+      flex: 0 0 auto;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 14px;
+      background: var(--card);
+    }
+    #fb-empty { color: var(--muted); font-size: .8rem; font-style: italic; }
+
+    .fb { display: flex; gap: 10px; padding: 9px 12px; border-radius: 7px; margin-bottom: 7px; font-size: .82rem; line-height: 1.55; }
+    .fb-hint    { background: var(--blue-bg);  border: 1px solid var(--blue-bd);  color: #1d4ed8; }
+    .fb-warn    { background: var(--amber-bg); border: 1px solid var(--amber-bd); color: #92400e; }
+    .fb-ok      { background: var(--green-bg); border: 1px solid var(--green-bd); color: #166534; }
+    .fb-err     { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: #991b1b; }
+    .fb-icon { flex-shrink: 0; }
+
+    /* Welcome */
+    #welcome {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; padding: 40px; text-align: center;
+      background: var(--card);
+    }
+    #welcome h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+    #welcome p { color: var(--muted); font-size: .88rem; line-height: 1.6; max-width: 380px; }
+
+    /* Modal */
+    #overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    #overlay.show { display: flex; }
+    #modal {
+      background: #fff; border-radius: 12px;
+      width: 92%; max-width: 680px;
+      max-height: 82vh; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    #modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+    }
+    #modal-head h2 { font-size: .95rem; font-weight: 700; }
+    #modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--muted); }
+    #modal-body { overflow-y: auto; padding: 20px; }
+    .syn-sec { margin-bottom: 22px; }
+    .syn-sec h3 {
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .syn-code {
+      background: #0f172a; color: #e2e8f0;
+      border-radius: 7px; padding: 12px 15px;
+      font-family: 'Courier New', monospace;
+      font-size: .78rem; line-height: 1.85;
+      white-space: pre; overflow-x: auto;
+    }
+    .kw  { color: #93c5fd; }
+    .op  { color: #f9a8d4; }
+    .tp  { color: #86efac; }
+    .cm  { color: #475569; }
+    .vl  { color: #fcd34d; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div id="sb-head">
+    <h1>Pseudocode Trainer</h1>
+    <p>IHK FIAE &nbsp;·&nbsp; Prüfungsvorbereitung</p>
+  </div>
+  <div id="sb-progress">
+    <div id="sb-prog-label">
+      <span>Fortschritt</span>
+      <span id="sb-done">0 / 10</span>
+    </div>
+    <div id="sb-prog-bar"><div id="sb-prog-fill" style="width:0%"></div></div>
+  </div>
+  <div id="ex-list"></div>
+  <button id="syn-btn" onclick="openModal()">📖 Syntax-Referenz</button>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+  <div id="content">
+
+    <!-- Description panel -->
+    <div id="desc-panel">
+      <div id="welcome">
+        <h2>Bereit für die IHK? 💪</h2>
+        <p>Wähle links eine Aufgabe aus. Bei Fehlern bekommst du gezielte Hinweise – keine fertigen Lösungen. Viel Erfolg bei der Prüfung!</p>
+      </div>
+      <div id="ex-view" style="display:none">
+        <div id="ex-meta"></div>
+        <div id="ex-title"></div>
+        <div id="ex-body"></div>
+      </div>
+    </div>
+
+    <!-- Editor panel -->
+    <div id="ed-panel">
+      <div id="ed-topbar">
+        <span>Dein Pseudocode</span>
+        <span id="attempt-info"></span>
+      </div>
+      <div id="code-wrap">
+        <textarea id="code-editor" spellcheck="false"
+          placeholder="// Schreibe hier deinen Pseudocode...&#10;// Drücke Strg+Enter zum Überprüfen"></textarea>
+      </div>
+      <div id="ed-actions">
+        <button class="btn btn-primary" onclick="checkSolution()">Überprüfen</button>
+        <button class="btn btn-sec"     onclick="resetCode()">Zurücksetzen</button>
+        <span id="kbd-hint"><kbd>Strg</kbd>+<kbd>Enter</kbd> überprüfen</span>
+      </div>
+      <div id="feedback">
+        <div id="fb-empty">Schreibe deinen Code und klicke auf „Überprüfen".</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- SYNTAX REFERENCE MODAL -->
+<div id="overlay" onclick="closeModalOutside(event)">
+  <div id="modal">
+    <div id="modal-head">
+      <h2>IHK Pseudocode – Syntax-Referenz</h2>
+      <button id="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body">
+
+      <div class="syn-sec">
+        <h3>Variablen &amp; Zuweisung</h3>
+        <div class="syn-code"><span class="cm">// Deklaration</span>
+<span class="vl">zahl</span>  : <span class="tp">GANZZAHL</span>       <span class="cm">// auch: INTEGER</span>
+<span class="vl">name</span>  : <span class="tp">ZEICHENKETTE</span>   <span class="cm">// auch: STRING</span>
+<span class="vl">flag</span>  : <span class="tp">WAHRHEITSWERT</span>  <span class="cm">// auch: BOOLEAN</span>
+<span class="vl">preis</span> : <span class="tp">KOMMAZAHL</span>      <span class="cm">// auch: REAL, FLOAT</span>
+
+<span class="cm">// Zuweisung</span>
+<span class="vl">zahl</span> <span class="op">←</span> 42      <span class="cm">// oder: zahl := 42</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>Ein- &amp; Ausgabe</h3>
+        <div class="syn-code"><span class="kw">EINGABE</span> zahl      <span class="cm">// auch: INPUT(zahl)</span>
+<span class="kw">AUSGABE</span> zahl      <span class="cm">// auch: OUTPUT(zahl), PRINT zahl</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>Fallunterscheidung</h3>
+        <div class="syn-code"><span class="kw">WENN</span> bedingung <span class="kw">DANN</span>       <span class="cm">// oder: IF ... THEN</span>
+    anweisung
+<span class="kw">SONST WENN</span> andere_bed <span class="kw">DANN</span>  <span class="cm">// ELSE IF</span>
+    anweisung
+<span class="kw">SONST</span>                       <span class="cm">// ELSE</span>
+    anweisung
+<span class="kw">ENDE WENN</span>                   <span class="cm">// END IF</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>FOR-Schleife (Zählschleife)</h3>
+        <div class="syn-code"><span class="kw">FÜR</span> i <span class="op">←</span> 1 <span class="kw">BIS</span> 10 <span class="kw">MACHE</span>    <span class="cm">// FOR i ← 1 TO 10 DO</span>
+    anweisung
+<span class="kw">ENDE FÜR</span>                    <span class="cm">// END FOR</span>
+
+<span class="cm">// Mit Schrittweite:</span>
+<span class="kw">FÜR</span> i <span class="op">←</span> 10 <span class="kw">BIS</span> 1 <span class="kw">SCHRITT</span> -1 <span class="kw">MACHE</span>
+    ...
+<span class="kw">ENDE FÜR</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>WHILE-Schleife (kopfgesteuert)</h3>
+        <div class="syn-code"><span class="kw">SOLANGE</span> bedingung <span class="kw">WIEDERHOLE</span>  <span class="cm">// WHILE ... DO</span>
+    anweisung
+<span class="kw">ENDE SOLANGE</span>                    <span class="cm">// END WHILE</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>REPEAT-UNTIL (fußgesteuert)</h3>
+        <div class="syn-code"><span class="kw">WIEDERHOLE</span>          <span class="cm">// REPEAT</span>
+    anweisung
+<span class="kw">BIS</span> bedingung        <span class="cm">// UNTIL ...</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>Arrays (Felder)</h3>
+        <div class="syn-code"><span class="vl">feld</span>[0..9] : <span class="tp">GANZZAHL</span>   <span class="cm">// Array mit 10 Elementen</span>
+
+<span class="vl">feld</span>[0] <span class="op">←</span> 42           <span class="cm">// Schreiben</span>
+x <span class="op">←</span> <span class="vl">feld</span>[i]            <span class="cm">// Lesen</span>
+n <span class="op">←</span> LÄNGE(<span class="vl">feld</span>)         <span class="cm">// Anzahl Elemente</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>Operatoren</h3>
+        <div class="syn-code"><span class="cm">// Arithmetisch</span>
++ - * /   <span class="kw">MOD</span>  <span class="kw">DIV</span>   <span class="cm">// MOD = Rest, DIV = ganzzahl. Division</span>
+
+<span class="cm">// Vergleich</span>
+=  ≠  &lt;  &gt;  ≤  ≥   <span class="cm">// oder: ==  !=  &lt;=  &gt;=</span>
+
+<span class="cm">// Logisch</span>
+<span class="kw">UND</span>  <span class="kw">ODER</span>  <span class="kw">NICHT</span>        <span class="cm">// AND  OR  NOT</span></div>
+      </div>
+
+      <div class="syn-sec">
+        <h3>Funktion &amp; Prozedur</h3>
+        <div class="syn-code"><span class="kw">FUNKTION</span> name(param : <span class="tp">TYP</span>) : <span class="tp">RÜCKGABETYP</span>
+    ...
+    <span class="kw">RÜCKGABE</span> wert      <span class="cm">// RETURN wert</span>
+<span class="kw">ENDE FUNKTION</span>
+
+<span class="kw">PROZEDUR</span> name(param : <span class="tp">TYP</span>)
+    ...
+<span class="kw">ENDE PROZEDUR</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   EXERCISE DATA
+   ================================================================ */
+const EXERCISES = [
+  {
+    id: 1, cat: "Grundlagen", level: "leicht",
+    title: "Gerade oder Ungerade",
+    desc: `Schreibe einen Algorithmus, der eine ganze Zahl einliest und prüft, ob sie gerade oder ungerade ist. Gib das Ergebnis aus.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Eingabe: 6   →  Ausgabe: "gerade"
+Eingabe: 7   →  Ausgabe: "ungerade"</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Verwende eine geeignete Rechenoperation, um den Rest zu ermitteln.</li>
+  <li>Beide Fälle (gerade <em>und</em> ungerade) müssen behandelt werden.</li>
+</ul>
+
+<div class="note">💡 In der IHK-Prüfung wird der Modulo-Operator oft als <strong>MOD</strong> geschrieben.</div>`,
+    check: checkGeradOdderade
+  },
+  {
+    id: 2, cat: "Grundlagen", level: "leicht",
+    title: "Maximum von 3 Zahlen",
+    desc: `Schreibe einen Algorithmus, der drei ganze Zahlen einliest und die größte davon ausgibt.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Eingabe: a=4, b=9, c=2   →  Ausgabe: 9
+Eingabe: a=7, b=3, c=7   →  Ausgabe: 7</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Es gibt mehrere gültige Lösungsansätze (verschachtelte IFs, UND-Bedingungen…).</li>
+  <li>Alle drei Zahlen müssen verglichen werden.</li>
+  <li>Denke an den Fall, dass zwei Zahlen gleich groß sind.</li>
+</ul>`,
+    check: checkMax3
+  },
+  {
+    id: 3, cat: "Schleifen", level: "leicht",
+    title: "Summe von 1 bis N",
+    desc: `Schreibe einen Algorithmus, der die Summe aller ganzen Zahlen von 1 bis N berechnet und ausgibt. N wird eingelesen.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Eingabe: N=5   →  Summe: 1+2+3+4+5 = 15
+Eingabe: N=3   →  Summe: 1+2+3 = 6</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Du brauchst eine Schleife und eine Akkumulator-Variable.</li>
+  <li>Initialisiere die Summenvariable mit 0 <em>vor</em> der Schleife.</li>
+</ul>`,
+    check: checkSumme1bisN
+  },
+  {
+    id: 4, cat: "Schleifen", level: "leicht",
+    title: "FizzBuzz",
+    desc: `Schreibe einen Algorithmus, der alle Zahlen von 1 bis 30 ausgibt. Dabei gilt:
+<ul style="padding-left:18px;line-height:1.9;margin-top:8px;font-size:.86rem">
+  <li>Ist die Zahl durch <strong>3</strong> teilbar → Ausgabe: <em>"Fizz"</em></li>
+  <li>Ist die Zahl durch <strong>5</strong> teilbar → Ausgabe: <em>"Buzz"</em></li>
+  <li>Ist die Zahl durch <strong>3 und 5</strong> teilbar → Ausgabe: <em>"FizzBuzz"</em></li>
+  <li>Sonst → Ausgabe der Zahl selbst</li>
+</ul>
+
+<h3>Beispielausgabe (Auszug)</h3>
+<div class="ex-box">1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz, ...</div>
+
+<div class="note">⚠ Wichtig: Prüfe den Fall „durch 3 <em>und</em> 5 teilbar" zuerst!</div>`,
+    check: checkFizzBuzz
+  },
+  {
+    id: 5, cat: "Schleifen", level: "mittel",
+    title: "Quersumme",
+    desc: `Schreibe einen Algorithmus, der die Quersumme einer eingelesenen positiven ganzen Zahl berechnet und ausgibt.
+
+<h3>Was ist die Quersumme?</h3>
+Die Quersumme ist die Summe aller einzelnen Ziffern einer Zahl.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Eingabe: 1234   →  1+2+3+4 = 10
+Eingabe: 459    →  4+5+9  = 18</div>
+
+<h3>Hinweis zur Vorgehensweise</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Du kannst eine Ziffer mit <strong>MOD 10</strong> abschneiden.</li>
+  <li>Mit <strong>DIV 10</strong> entfernst du die letzte Stelle.</li>
+  <li>Wiederhole solange, bis die Zahl 0 ist.</li>
+</ul>`,
+    check: checkQuersumme
+  },
+  {
+    id: 6, cat: "Arrays", level: "mittel",
+    title: "Lineare Suche",
+    desc: `Schreibe einen Algorithmus, der in einem Array (Feld) nach einem Suchwert sucht. Zurückgegeben wird der Index des ersten Treffers – oder -1, wenn der Wert nicht gefunden wurde.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Feld:     [5, 3, 8, 1, 9, 2]
+Suche:    8
+Ergebnis: Index 2
+
+Suche:    7
+Ergebnis: -1  (nicht gefunden)</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Durchlaufe das Array von Anfang bis Ende.</li>
+  <li>Vergleiche jedes Element mit dem Suchwert.</li>
+  <li>Gib den Index zurück, sobald du einen Treffer hast.</li>
+  <li>Gib -1 zurück, wenn kein Treffer gefunden wurde.</li>
+</ul>`,
+    check: checkLinearSearch
+  },
+  {
+    id: 7, cat: "Arrays", level: "mittel",
+    title: "Maximum im Array",
+    desc: `Schreibe einen Algorithmus, der das größte Element eines Arrays findet und ausgibt.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Feld: [3, 7, 1, 9, 4, 6]   →   Maximum: 9</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Initialisiere eine Variable <em>max</em> mit dem ersten Element.</li>
+  <li>Vergleiche in der Schleife jedes Element mit dem aktuellen Maximum.</li>
+  <li>Aktualisiere max, wenn ein größeres Element gefunden wird.</li>
+</ul>
+
+<div class="note">⚠ Häufiger Fehler: max mit 0 initialisieren – was passiert bei einem Array mit nur negativen Zahlen?</div>`,
+    check: checkMaxArray
+  },
+  {
+    id: 8, cat: "Arrays", level: "mittel",
+    title: "Häufigkeit zählen",
+    desc: `Schreibe einen Algorithmus, der zählt, wie oft ein bestimmter Wert in einem Array vorkommt, und das Ergebnis ausgibt.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Feld:      [3, 7, 3, 1, 3, 5]
+Suchwert:  3
+Ergebnis:  3  (kommt dreimal vor)</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Du brauchst eine Zählervariable, die mit 0 initialisiert wird.</li>
+  <li>In der Schleife: vergleiche jedes Element mit dem Suchwert.</li>
+  <li>Erhöhe den Zähler bei einem Treffer.</li>
+</ul>`,
+    check: checkCount
+  },
+  {
+    id: 9, cat: "Algorithmen", level: "schwer",
+    title: "Bubble Sort",
+    desc: `Schreibe den Bubble-Sort-Algorithmus, der ein Array aufsteigend sortiert.
+
+<h3>Funktionsprinzip</h3>
+Bubble Sort vergleicht benachbarte Elemente und tauscht sie, wenn sie in der falschen Reihenfolge sind. Nach jedem Durchlauf ist das größte Element "aufgestiegen".
+
+<h3>Beispiel</h3>
+<div class="ex-box">Vorher:  [5, 3, 8, 1, 4]
+Nachher: [1, 3, 4, 5, 8]</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Du brauchst <strong>zwei verschachtelte Schleifen</strong>.</li>
+  <li>Zum Tauschen zweier Werte brauchst du eine <strong>Hilfsvariable</strong> (temp).</li>
+  <li>Die äußere Schleife läuft n-1 Mal, die innere kann mit jeder Runde kürzer werden.</li>
+</ul>
+
+<div class="note">💡 Tausch-Schema: temp ← a, dann a ← b, dann b ← temp</div>`,
+    check: checkBubbleSort
+  },
+  {
+    id: 10, cat: "Algorithmen", level: "schwer",
+    title: "Binäre Suche",
+    desc: `Schreibe den Algorithmus der binären Suche. Das Array ist bereits <strong>aufsteigend sortiert</strong>.
+
+<h3>Funktionsprinzip</h3>
+Halbiere den Suchbereich bei jedem Schritt: Vergleiche den Suchwert mit dem mittleren Element. Je nach Vergleich wird die linke oder rechte Hälfte weitergesucht.
+
+<h3>Beispiel</h3>
+<div class="ex-box">Feld:    [1, 3, 5, 7, 9, 11, 13]
+Suche:   7
+Mitte:   Index 3 → Wert 7  ✓  →  gefunden!</div>
+
+<h3>Zu beachten</h3>
+<ul style="padding-left:18px;line-height:1.9;font-size:.86rem">
+  <li>Variablen für linke und rechte Grenze (<em>links</em>, <em>rechts</em>).</li>
+  <li>Berechne den mittleren Index: <code>mitte ← (links + rechts) DIV 2</code></li>
+  <li>Schleife solange <em>links ≤ rechts</em>.</li>
+  <li>Gib den Index zurück wenn gefunden, sonst -1.</li>
+</ul>`,
+    check: checkBinarySearch
+  }
+];
+
+/* ================================================================
+   CHECKER HELPERS
+   ================================================================ */
+function up(code) { return code.toUpperCase(); }
+function has(code, ...kws) {
+  const u = up(code);
+  return kws.some(k => u.includes(up(k)));
+}
+function countMatches(code, kw) {
+  const u = up(code);
+  return (u.match(new RegExp(up(kw).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g')) || []).length;
+}
+function hasPattern(code, rx) { return rx.test(code); }
+
+function fb(type, icon, msg) { return { type, icon, msg }; }
+const OK   = (m) => fb('ok',   '✓', m);
+const HINT = (m) => fb('hint', '💡', m);
+const WARN = (m) => fb('warn', '⚠', m);
+const ERR  = (m) => fb('err',  '✗', m);
+
+/* ================================================================
+   INDIVIDUAL CHECKERS
+   ================================================================ */
+
+function checkGeradOdderade(code) {
+  const items = [], u = up(code);
+  let pts = 0;
+
+  const hasMod = has(code, 'MOD', '%');
+  if (hasMod) {
+    pts += 30; items.push(OK('Modulo-Operator erkannt.'));
+  } else {
+    items.push(HINT('Welcher Operator gibt den Rest einer Division zurück? In IHK-Pseudocode schreibt man ihn als MOD. Was ergibt eine gerade Zahl MOD 2?'));
+  }
+
+  if (hasMod) {
+    const cmpZero = /MOD\s*2\s*[=!<>]+\s*0|0\s*[=!<>]+\s*MOD\s*2|%\s*2\s*[=!<>]+\s*0/.test(u);
+    if (cmpZero) { pts += 25; items.push(OK('Vergleich mit 0 korrekt.')); }
+    else { items.push(HINT('Du verwendest MOD – aber womit vergleichst du das Ergebnis? Was ist der Rest, wenn eine gerade Zahl durch 2 geteilt wird?')); }
+  }
+
+  const hasIf = has(code, 'WENN ', 'IF ');
+  if (hasIf) { pts += 20; items.push(OK('Fallunterscheidung vorhanden.')); }
+  else { items.push(ERR('Eine Fallunterscheidung (IF/WENN) fehlt komplett.')); }
+
+  const hasElse = has(code, 'SONST', 'ELSE');
+  if (hasElse) { pts += 15; items.push(OK('ELSE/SONST-Zweig vorhanden.')); }
+  else if (hasIf) { items.push(WARN('Was passiert im anderen Fall? Füge einen SONST/ELSE-Zweig für "ungerade" hinzu.')); }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT', 'SCHREIBE', 'WRITE');
+  if (hasOut) { pts += 10; }
+  else { items.push(WARN('Vergiss die Ausgabe nicht (AUSGABE / OUTPUT).')); }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkMax3(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasIf = has(code, 'WENN ', 'IF ');
+  if (!hasIf) { items.push(ERR('Fallunterscheidung (IF/WENN) komplett fehlend.')); }
+  else { pts += 15; }
+
+  const hasElse = has(code, 'SONST', 'ELSE');
+  if (hasIf && !hasElse) { items.push(WARN('Du brauchst auch SONST/ELSE-Zweige – was passiert wenn a nicht das Maximum ist?')); }
+  else if (hasElse) { pts += 15; }
+
+  // Count comparisons (> or >=)
+  const cmpCount = (u.match(/[><=!]+/g) || []).length;
+  if (cmpCount < 2) {
+    items.push(HINT('Du brauchst mindestens zwei Vergleiche, um das Maximum aus drei Zahlen zu ermitteln. Wie viele Vergleiche sind in deinem Code?'));
+  } else {
+    pts += 30; items.push(OK('Mehrere Vergleiche vorhanden.'));
+  }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT', 'SCHREIBE');
+  if (hasOut) { pts += 20; } else { items.push(WARN('Ausgabe fehlt – gib das Maximum aus.')); }
+
+  // Check all three variables referenced
+  const vars = (u.match(/\b[A-Z]\b/g) || []);
+  const uniqueVars = new Set(vars);
+  if (uniqueVars.size < 3) {
+    items.push(HINT('Stelle sicher, dass alle drei Eingabevariablen im Vergleich berücksichtigt werden.'));
+  } else { pts += 20; }
+
+  if (pts >= 70 && hasIf && hasElse) items.push(OK('Grundstruktur ist korrekt!'));
+
+  return { passed: pts >= 80, items };
+}
+
+function checkSumme1bisN(code) {
+  const items = []; let pts = 0;
+
+  const hasLoop = has(code, 'FÜR', 'FUER', 'FOR ', 'SOLANGE', 'WHILE');
+  if (hasLoop) { pts += 25; items.push(OK('Schleife vorhanden.')); }
+  else { items.push(ERR('Schleife fehlt. Wie willst du alle Zahlen von 1 bis N addieren, ohne eine Schleife?')); }
+
+  // Check for accumulator pattern: sum ← sum + or +=
+  const hasAcc = /\w+\s*(?:←|:=)\s*\w+\s*\+/.test(code) || /\+\s*=/.test(code) || /\w+\s*(?:←|:=)\s*\w+\s*\+\s*\w+/.test(code);
+  if (hasAcc) { pts += 30; items.push(OK('Akkumulator-Muster erkannt.')); }
+  else if (hasLoop) { items.push(HINT('In der Schleife musst du die laufende Zahl zur Summe addieren. Schema: summe ← summe + i')); }
+
+  // Check initialization to 0
+  const hasInit0 = /(?:summe|sum|gesamt|total|erg\w*)\s*(?:←|:=)\s*0/i.test(code);
+  if (hasInit0) { pts += 20; items.push(OK('Summenvariable mit 0 initialisiert.')); }
+  else if (hasAcc) { items.push(HINT('Initialisierst du deine Summenvariable auch mit 0 bevor die Schleife beginnt?')); }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT', 'SCHREIBE');
+  if (hasOut) { pts += 10; }
+  else { items.push(WARN('Vergiss nicht, die berechnete Summe auszugeben.')); }
+
+  if (pts >= 75) items.push(OK('Struktur sieht gut aus!'));
+
+  return { passed: pts >= 80, items };
+}
+
+function checkFizzBuzz(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasLoop = has(code, 'FÜR', 'FUER', 'FOR ');
+  if (hasLoop) { pts += 20; items.push(OK('FOR-Schleife vorhanden.')); }
+  else { items.push(ERR('Eine FOR-Schleife wird benötigt, um Zahlen 1–30 zu durchlaufen.')); }
+
+  const hasMod3 = /MOD\s*3|%\s*3|3\s*MOD/.test(u);
+  const hasMod5 = /MOD\s*5|%\s*5|5\s*MOD/.test(u);
+
+  if (hasMod3) { pts += 20; items.push(OK('Prüfung auf Teilbarkeit durch 3 vorhanden.')); }
+  else { items.push(HINT('Wie prüfst du ob eine Zahl durch 3 teilbar ist? Denke an MOD 3 = 0.')); }
+
+  if (hasMod5) { pts += 20; items.push(OK('Prüfung auf Teilbarkeit durch 5 vorhanden.')); }
+  else { items.push(HINT('Wie prüfst du ob eine Zahl durch 5 teilbar ist? Denke an MOD 5 = 0.')); }
+
+  // Check for 15 OR combination
+  const hasMod15 = /MOD\s*15|%\s*15/.test(u);
+  const hasAnd   = has(code, 'UND', 'AND');
+  if (hasMod15 || (hasMod3 && hasMod5 && hasAnd)) {
+    pts += 25; items.push(OK('FizzBuzz-Sonderfall (durch 15) wird behandelt.'));
+  } else if (hasMod3 && hasMod5) {
+    items.push(HINT('Der Fall "durch 3 UND 5 teilbar" wird separat geprüft – mit MOD 15 oder einer UND-Verknüpfung. Wo in deinen IF-Abfragen steht dieser Fall?'));
+  }
+
+  if (pts >= 60) { pts += 15; }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkQuersumme(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasLoop = has(code, 'SOLANGE', 'WHILE', 'WIEDERHOLE', 'REPEAT');
+  if (hasLoop) { pts += 25; items.push(OK('Schleife vorhanden.')); }
+  else { items.push(HINT('Denke daran: Du weißt nicht, wie viele Ziffern die Zahl hat. Welche Schleife eignet sich, wenn du die Anzahl der Durchläufe nicht kennst?')); }
+
+  const hasMod10 = /MOD\s*10|%\s*10/.test(u);
+  if (hasMod10) { pts += 25; items.push(OK('MOD 10 zum Extrahieren der letzten Ziffer erkannt.')); }
+  else { items.push(HINT('Wie isolierst du die letzte Ziffer einer Zahl? Was ergibt zum Beispiel 1234 MOD 10?')); }
+
+  const hasDiv10 = /DIV\s*10|\/\/\s*10|GANZZAHL.*\/.*10/i.test(u) || /\s*DIV\s*10/.test(u);
+  if (hasDiv10) { pts += 25; items.push(OK('DIV 10 zum Entfernen der letzten Ziffer erkannt.')); }
+  else { items.push(HINT('Nach dem Addieren der letzten Ziffer zur Quersumme – wie "entfernst" du diese Ziffer? Was ergibt 1234 DIV 10?')); }
+
+  const hasAcc = /\w+\s*(?:←|:=)\s*\w+\s*\+/.test(code);
+  if (hasAcc) { pts += 15; items.push(OK('Akkumulator für Quersumme vorhanden.')); }
+  else { items.push(WARN('Vergiss nicht, die Ziffern zur Quersumme zu addieren.')); }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT');
+  if (hasOut) { pts += 10; }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkLinearSearch(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasArray = /\w+\[\s*\w+\s*\]/.test(code);
+  if (hasArray) { pts += 20; items.push(OK('Array-Zugriff erkannt.')); }
+  else { items.push(ERR('Array-Zugriff fehlt. Verwende feld[i] um auf Elemente zuzugreifen.')); }
+
+  const hasLoop = has(code, 'FÜR', 'FUER', 'FOR ');
+  if (hasLoop) { pts += 20; items.push(OK('Schleife zum Durchlaufen vorhanden.')); }
+  else { items.push(HINT('Du brauchst eine Schleife, um alle Elemente zu durchlaufen.')); }
+
+  const hasReturn = has(code, 'RÜCKGABE', 'RETURN', 'AUSGABE', 'OUTPUT');
+  if (hasReturn) { pts += 20; }
+  else { items.push(WARN('Vergiss nicht, den gefundenen Index zurückzugeben (RÜCKGABE / RETURN).')); }
+
+  // Check for -1 (not found case)
+  const hasMinusOne = code.includes('-1') || u.includes('NICHT GEFUNDEN') || u.includes('NOT FOUND');
+  if (hasMinusOne) { pts += 25; items.push(OK('-1 für "nicht gefunden" behandelt.')); }
+  else { items.push(HINT('Was gibst du zurück, wenn der Suchwert nicht im Array vorhanden ist? Die Konvention ist: -1.')); }
+
+  const hasCompare = /[=!<>]+/.test(code);
+  if (hasCompare && hasArray) { pts += 15; items.push(OK('Vergleich im Array vorhanden.')); }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkMaxArray(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasArray = /\w+\[\s*\w+\s*\]/.test(code) || /\w+\[\s*0\s*\]/.test(code);
+  if (hasArray) { pts += 15; items.push(OK('Array-Zugriff erkannt.')); }
+  else { items.push(ERR('Array-Zugriff fehlt. Verwende feld[i] um auf Elemente zuzugreifen.')); }
+
+  const hasLoop = has(code, 'FÜR', 'FUER', 'FOR ', 'SOLANGE', 'WHILE');
+  if (hasLoop) { pts += 20; items.push(OK('Schleife vorhanden.')); }
+  else { items.push(ERR('Schleife fehlt.')); }
+
+  // Check initialization with first element [0]
+  const initWithFirst = /(?:max|maximum|groesst|größt)\s*(?:←|:=)\s*\w+\[\s*0\s*\]/i.test(code);
+  if (initWithFirst) { pts += 30; items.push(OK('max mit erstem Element korrekt initialisiert.')); }
+  else {
+    const initWith0 = /(?:max|maximum)\s*(?:←|:=)\s*0/i.test(code);
+    if (initWith0) { items.push(WARN('Du initialisierst max mit 0 – was passiert, wenn alle Arrayelemente negativ sind? Besser: max ← feld[0].')); }
+    else { items.push(HINT('Bevor du die Schleife startest, womit initialisierst du deine max-Variable? Tip: Nimm den ersten Arraywert.')); }
+  }
+
+  const hasCompar = has(code, '>');
+  if (hasCompar && hasLoop) { pts += 20; items.push(OK('Vergleich in der Schleife erkannt.')); }
+  else if (hasLoop) { items.push(HINT('In der Schleife: Vergleiche jedes Element mit dem aktuellen Maximum und aktualisiere es bei Bedarf.')); }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT', 'RÜCKGABE', 'RETURN');
+  if (hasOut) { pts += 15; }
+  else { items.push(WARN('Ausgabe des Maximums fehlt.')); }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkCount(code) {
+  const items = []; let pts = 0;
+
+  const hasArray = /\w+\[\s*\w+\s*\]/.test(code);
+  if (hasArray) { pts += 20; items.push(OK('Array-Zugriff erkannt.')); }
+  else { items.push(ERR('Array-Zugriff fehlt.')); }
+
+  const hasLoop = has(code, 'FÜR', 'FUER', 'FOR ');
+  if (hasLoop) { pts += 20; items.push(OK('Schleife vorhanden.')); }
+  else { items.push(ERR('Schleife fehlt.')); }
+
+  // Check counter initialized to 0
+  const counterInit = /(?:zähler|zaehler|counter|anzahl|count)\s*(?:←|:=)\s*0/i.test(code);
+  if (counterInit) { pts += 25; items.push(OK('Zählervariable mit 0 initialisiert.')); }
+  else { items.push(HINT('Hast du deine Zählervariable (z.B. zaehler ← 0) vor der Schleife auf 0 gesetzt?')); }
+
+  // Counter increment
+  const hasIncrement = /(?:zähler|zaehler|counter|anzahl|count)\s*(?:←|:=)\s*(?:zähler|zaehler|counter|anzahl|count)\s*\+\s*1/i.test(code)
+    || /\+\s*=\s*1/.test(code) || /\+\+/.test(code);
+  if (hasIncrement) { pts += 20; items.push(OK('Zähler wird inkrementiert.')); }
+  else { items.push(HINT('Wie erhöhst du den Zähler wenn ein Element dem Suchwert entspricht? Schema: zaehler ← zaehler + 1')); }
+
+  const hasOut = has(code, 'AUSGABE', 'OUTPUT', 'PRINT');
+  if (hasOut) { pts += 15; }
+  else { items.push(WARN('Ausgabe des Zählers fehlt.')); }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkBubbleSort(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  // Two loops
+  const loopCount = (u.match(/\b(?:FÜR|FUER|FOR)\b/g) || []).length;
+  if (loopCount >= 2) { pts += 25; items.push(OK('Zwei Schleifen erkannt.')); }
+  else if (loopCount === 1) { items.push(HINT('Bubble Sort braucht zwei verschachtelte Schleifen: Die äußere kontrolliert die Passes, die innere vergleicht Nachbarn.')); }
+  else { items.push(ERR('Schleifen fehlen komplett.')); }
+
+  // Temp variable for swap
+  const hasTemp = /\b(?:temp|hilf|zwischen|swap|tmp|h)\b/i.test(code);
+  if (hasTemp) { pts += 25; items.push(OK('Hilfsvariable für Tausch erkannt.')); }
+  else { items.push(HINT('Wie tauschst du zwei Arrayelemente? Direkt zuweisen geht nicht – du brauchst eine dritte "Hilfsvariable" (temp), damit kein Wert verloren geht.')); }
+
+  // Swap pattern: temp ← a; a ← b; b ← temp
+  const hasSwap = hasTemp && /\w+\[\w+\]\s*(?:←|:=)\s*(?:temp|hilf|zwischen|swap|tmp|h)/i.test(code);
+  if (hasSwap) { pts += 20; items.push(OK('Tausch-Sequenz korrekt.')); }
+  else if (hasTemp) { items.push(HINT('Das Tausch-Schema ist: temp ← a, dann a ← b, dann b ← temp. Hast du alle drei Schritte?')); }
+
+  // Comparison
+  const hasCmp = /\w+\[\s*\w+\s*\]\s*[><]=?\s*\w+\[\s*\w+\s*\]/.test(code);
+  if (hasCmp) { pts += 15; items.push(OK('Vergleich benachbarter Elemente erkannt.')); }
+  else { items.push(HINT('Vergleiche feld[i] und feld[i+1] (oder feld[j] und feld[j+1]) miteinander.')); }
+
+  // Inner loop bound (n-1)
+  const hasN1 = /n\s*-\s*1|länge.*-.*1|len.*-.*1/i.test(code);
+  if (hasN1) { pts += 15; items.push(OK('Schleifengrenze n-1 berücksichtigt.')); }
+  else if (loopCount >= 2) { items.push(HINT('Warum läuft die innere Schleife nur bis n-1 (nicht bis n)? Überlege: feld[j+1] wäre sonst außerhalb des Arrays.')); }
+
+  return { passed: pts >= 80, items };
+}
+
+function checkBinarySearch(code) {
+  const items = []; let pts = 0;
+  const u = up(code);
+
+  const hasWhile = has(code, 'SOLANGE', 'WHILE');
+  if (hasWhile) { pts += 20; items.push(OK('WHILE-Schleife vorhanden.')); }
+  else { items.push(HINT('Binäre Suche braucht eine WHILE-Schleife (kopfgesteuert), da du nicht weißt, wie viele Schritte nötig sind.')); }
+
+  // Left/right boundary variables
+  const hasLR = /\b(?:links|rechts|left|right|lo|hi|low|high|l\b|r\b)/i.test(code);
+  if (hasLR) { pts += 20; items.push(OK('Grenz-Variablen (links/rechts) erkannt.')); }
+  else { items.push(HINT('Du brauchst zwei Variablen, die den aktuellen Suchbereich beschreiben. Normalerweise: links ← 0 und rechts ← n-1.')); }
+
+  // Middle calculation
+  const hasMid = /(?:mitte|mid|middle|center)\s*(?:←|:=)/.test(code) &&
+                 has(code, 'DIV', '//', '+');
+  if (hasMid) { pts += 25; items.push(OK('Mittenberechnung erkannt.')); }
+  else { items.push(HINT('Wie berechnest du den mittleren Index? Schema: mitte ← (links + rechts) DIV 2')); }
+
+  // Boundary update
+  const hasLUpdate = /links\s*(?:←|:=)\s*mitte|left\s*(?:←|:=)\s*mid|lo\s*(?:←|:=)\s*mid/i.test(code);
+  const hasRUpdate = /rechts\s*(?:←|:=)\s*mitte|right\s*(?:←|:=)\s*mid|hi\s*(?:←|:=)\s*mid/i.test(code);
+  if (hasLUpdate && hasRUpdate) { pts += 20; items.push(OK('Beide Grenzen werden angepasst.')); }
+  else if (hasLUpdate || hasRUpdate) { items.push(HINT('Du passt nur eine Grenze an. Denke daran: Wenn der Suchwert kleiner als Mitte ist, wird rechts angepasst – wenn größer, wird links angepasst.')); }
+  else if (hasMid) { items.push(HINT('Nach dem Vergleich mit dem Mittelelement: Wie verengst du den Suchbereich? Setze entweder links ← mitte+1 oder rechts ← mitte-1.')); }
+
+  const hasMinusOne = code.includes('-1');
+  if (hasMinusOne) { pts += 15; items.push(OK('-1 für "nicht gefunden" behandelt.')); }
+  else { items.push(HINT('Was gibst du zurück, wenn das Element nicht gefunden wurde? Konvention: -1 zurückgeben.')); }
+
+  return { passed: pts >= 80, items };
+}
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let state = {
+  activeId: null,
+  attempts: {},  // id -> number
+  solved: {},    // id -> boolean
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('ihk_ps_state');
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem('ihk_ps_state', JSON.stringify(state));
+}
+
+/* ================================================================
+   UI
+   ================================================================ */
+function renderSidebar() {
+  const list  = document.getElementById('ex-list');
+  const fill  = document.getElementById('sb-prog-fill');
+  const doneE = document.getElementById('sb-done');
+
+  const solvedCount = Object.values(state.solved).filter(Boolean).length;
+  fill.style.width = (solvedCount / EXERCISES.length * 100) + '%';
+  doneE.textContent = `${solvedCount} / ${EXERCISES.length}`;
+
+  const cats = [...new Set(EXERCISES.map(e => e.cat))];
+  list.innerHTML = '';
+  for (const cat of cats) {
+    const h = document.createElement('div');
+    h.className = 'cat-header';
+    h.textContent = cat;
+    list.appendChild(h);
+    for (const ex of EXERCISES.filter(e => e.cat === cat)) {
+      const div = document.createElement('div');
+      div.className = 'ex-item' + (state.activeId === ex.id ? ' active' : '');
+      div.onclick = () => loadExercise(ex.id);
+      const dotCls = state.solved[ex.id]
+        ? 'dot-done'
+        : state.activeId === ex.id ? 'dot-active' : 'dot-todo';
+      const dotTxt = state.solved[ex.id] ? '✓' : ex.id;
+      div.innerHTML = `
+        <span class="ex-dot ${dotCls}">${dotTxt}</span>
+        <span class="ex-label">${ex.title}</span>
+        <span class="lv lv-${ex.level}">${ex.level}</span>`;
+      list.appendChild(div);
+    }
+  }
+}
+
+function loadExercise(id) {
+  state.activeId = id;
+  saveState();
+
+  const ex = EXERCISES.find(e => e.id === id);
+
+  // Show exercise view
+  document.getElementById('welcome').style.display = 'none';
+  const view = document.getElementById('ex-view');
+  view.style.display = 'block';
+
+  // Meta
+  const meta = document.getElementById('ex-meta');
+  meta.innerHTML = `
+    <span class="badge badge-cat">${ex.cat}</span>
+    <span class="lv lv-${ex.level} badge">${ex.level}</span>
+    <span id="ex-num">Aufgabe ${ex.id} von ${EXERCISES.length}</span>`;
+
+  document.getElementById('ex-title').textContent = ex.title;
+  document.getElementById('ex-body').innerHTML = ex.desc;
+
+  // Reset editor
+  document.getElementById('code-editor').value = '';
+  document.getElementById('code-editor').focus();
+
+  // Reset feedback
+  clearFeedback();
+  updateAttemptInfo(id);
+
+  renderSidebar();
+}
+
+function updateAttemptInfo(id) {
+  const att = state.attempts[id] || 0;
+  const el  = document.getElementById('attempt-info');
+  if (att === 0) { el.textContent = ''; return; }
+  if (state.solved[id]) {
+    el.innerHTML = '<span style="color:var(--green)">✓ Gelöst!</span>';
+  } else {
+    el.textContent = `Versuch ${att}`;
+  }
+}
+
+function clearFeedback() {
+  const fb = document.getElementById('feedback');
+  fb.innerHTML = '<div id="fb-empty">Schreibe deinen Code und klicke auf „Überprüfen".</div>';
+}
+
+function checkSolution() {
+  const id = state.activeId;
+  if (!id) return;
+
+  const code = document.getElementById('code-editor').value.trim();
+  if (!code) {
+    showFeedbackItems([ERR('Bitte schreibe zuerst Pseudocode.')]);
+    return;
+  }
+
+  state.attempts[id] = (state.attempts[id] || 0) + 1;
+  saveState();
+
+  const ex = EXERCISES.find(e => e.id === id);
+  const result = ex.check(code);
+
+  if (result.passed) {
+    state.solved[id] = true;
+    saveState();
+    showSuccess(id);
+  } else {
+    showFeedbackItems(result.items);
+  }
+
+  updateAttemptInfo(id);
+  renderSidebar();
+}
+
+function showFeedbackItems(items) {
+  const fb = document.getElementById('feedback');
+  fb.innerHTML = '';
+  if (!items || items.length === 0) {
+    fb.innerHTML = '<div id="fb-empty">Kein Feedback verfügbar.</div>';
+    return;
+  }
+
+  // Show errors/warnings first, then hints, then oks
+  const order = ['err', 'warn', 'hint', 'ok'];
+  const sorted = [...items].sort((a,b) => order.indexOf(a.type) - order.indexOf(b.type));
+
+  for (const item of sorted) {
+    const div = document.createElement('div');
+    div.className = `fb fb-${item.type}`;
+    div.innerHTML = `<span class="fb-icon">${item.icon}</span><span>${item.msg}</span>`;
+    fb.appendChild(div);
+  }
+}
+
+function showSuccess(id) {
+  const fb = document.getElementById('feedback');
+  const next = EXERCISES.find(e => e.id === id + 1);
+  fb.innerHTML = `
+    <div class="fb fb-ok" style="flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="fb-icon" style="font-size:1.3rem">🎉</span>
+        <strong>Super! Aufgabe gelöst!</strong>
+      </div>
+      <p style="font-size:.82rem;line-height:1.5">Dein Pseudocode enthält die richtigen Strukturen. Gut gemacht!</p>
+      ${next ? `<button class="btn btn-green" onclick="loadExercise(${next.id})">Weiter → ${next.title}</button>` : '<p style="font-size:.82rem;font-weight:600">🏆 Alle Aufgaben abgeschlossen! Du bist bereit für die IHK!</p>'}
+    </div>`;
+}
+
+function resetCode() {
+  document.getElementById('code-editor').value = '';
+  clearFeedback();
+  document.getElementById('code-editor').focus();
+}
+
+/* ================================================================
+   MODAL
+   ================================================================ */
+function openModal() {
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+/* ================================================================
+   KEYBOARD SHORTCUT
+   ================================================================ */
+document.getElementById('code-editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    checkSolution();
+  }
+  // Tab inserts spaces
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.slice(0, start) + '    ' + ta.value.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + 4;
+  }
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+loadState();
+renderSidebar();
+</script>
+</body>
+</html>

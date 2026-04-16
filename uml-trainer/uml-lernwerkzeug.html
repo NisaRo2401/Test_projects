@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UML Lernwerkzeug – IHK FIAE</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f4f0;color:#1a1a1a;height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;background:#fafaf8}
+.hdr{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #e0ddd6;background:#fff;flex-shrink:0;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.logo{font-size:15px;font-weight:600;color:#1a1a1a;letter-spacing:-.2px;margin-right:6px}
+.logo span{color:#185FA5}
+.tgrp{display:flex;gap:3px}
+.tb{padding:5px 13px;border-radius:7px;border:1px solid #d6d3cc;background:transparent;cursor:pointer;font-size:12px;color:#666;font-family:inherit}
+.tb:hover{background:#f0eeea;border-color:#bbb}
+.tb.ac{background:#fff;color:#1a1a1a;border-color:#999;font-weight:500}
+.tb.uc.ac{background:#e6f1fb;color:#0C447C;border-color:#185FA5}
+.tb.cl.ac{background:#eeedfe;color:#26215C;border-color:#534AB7}
+.tb.av.ac{background:#e1f5ee;color:#04342C;border-color:#0F6E56}
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:190px;border-right:1px solid #e0ddd6;display:flex;flex-direction:column;overflow:hidden;background:#fafaf8;flex-shrink:0}
+.slabel{font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;padding:12px 12px 0}
+.pal{padding:0 8px 6px;flex:1;overflow-y:auto}
+.pal::-webkit-scrollbar{width:4px}
+.pal::-webkit-scrollbar-thumb{background:#d6d3cc;border-radius:2px}
+.pi{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #e0ddd6;cursor:grab;margin-bottom:4px;background:#fff;user-select:none;transition:border-color .15s,box-shadow .15s}
+.pi:hover{border-color:#bbb;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.pi:active{cursor:grabbing}
+.pi-name{font-size:11px;color:#555;font-weight:500}
+.csec{padding:10px 10px;border-top:1px solid #e0ddd6}
+.csec-label{font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px}
+.csel{width:100%;padding:6px 8px;border-radius:7px;border:1px solid #d6d3cc;background:#fff;color:#1a1a1a;font-size:11px;font-family:'Menlo','Consolas',monospace;outline:none}
+.csel:focus{border-color:#185FA5}
+.trow{display:flex;gap:4px;padding:10px 10px 6px}
+.tbtn{flex:1;padding:9px 4px;border-radius:7px;border:1px solid #d6d3cc;background:#fff;cursor:pointer;font-size:16px;color:#888;font-family:inherit;line-height:1;transition:all .15s}
+.tbtn:hover{background:#f0eeea}
+.tbtn.sel-mode{background:#e6f1fb;border-color:#185FA5;color:#0C447C}
+.tbtn.conn-mode{background:#e1f5ee;border-color:#0F6E56;color:#04342C}
+.tbtn.del-mode{background:#fcebeb;border-color:#A32D2D;color:#501313}
+.vbtn{margin:6px 10px 10px;padding:10px;border-radius:8px;border:none;background:#185FA5;color:#fff;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;transition:background .15s}
+.vbtn:hover{background:#0C447C}
+.tbanner{padding:10px 12px;background:#e6f1fb;border-bottom:1px solid #B5D4F4;font-size:11px;color:#0C447C;font-weight:500;flex-shrink:0}
+.cwrap{flex:1;position:relative;overflow:hidden;background:#f5f4f0}
+#cv{width:100%;height:100%;display:block;cursor:default}
+.hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:5px 16px;border-radius:20px;border:1px solid #d6d3cc;background:rgba(255,255,255,.9);font-size:11px;color:#888;pointer-events:none;white-space:nowrap;max-width:92%;backdrop-filter:blur(4px)}
+.hint.conn-hint{background:rgba(225,245,238,.95);color:#0F6E56;border-color:#9FE1CB}
+.fbx{position:absolute;top:12px;right:12px;background:#fff;border-radius:12px;padding:16px 18px;max-width:280px;border:1px solid #d6d3cc;z-index:10;font-size:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);line-height:1.6}
+.fbx h3{font-size:13px;font-weight:600;margin-bottom:10px}
+.fbx-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.fbx-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.fbx-dot.ok{background:#1D9E75}
+.fbx-dot.no{background:#E24B4A}
+.ei{position:absolute;border:2px solid #185FA5;border-radius:6px;padding:4px 9px;font-size:12px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;z-index:20;min-width:120px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.clrbtn{position:absolute;top:12px;right:12px;padding:6px 13px;border-radius:7px;border:1px solid #d6d3cc;background:#fff;color:#888;cursor:pointer;font-size:11px;font-family:inherit;z-index:5;transition:all .15s}
+.clrbtn:hover{border-color:#bbb;color:#333}
+.panel{flex:1;overflow-y:auto;padding:24px 26px}
+.panel::-webkit-scrollbar{width:5px}
+.panel::-webkit-scrollbar-thumb{background:#d6d3cc;border-radius:3px}
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.exc{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:18px;transition:box-shadow .15s}
+.exc:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.ext{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.exh{font-size:15px;font-weight:600;margin-bottom:9px;color:#1a1a1a}
+.exd{font-size:12px;color:#555;line-height:1.7;white-space:pre-wrap;margin-bottom:12px}
+.excr{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;color:#999}
+.exc ul{font-size:11px;color:#888;margin-left:14px;margin-bottom:14px}
+.exc li{margin-bottom:3px}
+.exb{padding:8px 16px;border-radius:8px;border:1px solid;background:transparent;cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s}
+.thgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:18px}
+.thc{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:16px}
+.thsym{display:flex;justify-content:center;align-items:center;margin-bottom:12px;padding:12px;background:#f5f4f0;border-radius:8px;min-height:56px}
+.thn{font-size:13px;font-weight:600;margin-bottom:5px;color:#1a1a1a}
+.thd{font-size:11px;color:#666;line-height:1.6}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.badge-uc{background:#e6f1fb;color:#0C447C}
+.badge-cl{background:#eeedfe;color:#26215C}
+.badge-av{background:#e1f5ee;color:#04342C}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#bbb;gap:10px;pointer-events:none}
+.empty-icon{font-size:48px;opacity:.4}
+.empty-txt{font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hdr">
+  <span class="logo">UML <span>Lernwerkzeug</span></span>
+  <div class="tgrp" id="dt-tabs">
+    <button class="tb uc ac" data-dt="uc">Use-Case</button>
+    <button class="tb cl" data-dt="cl">Klassendiagramm</button>
+    <button class="tb av" data-dt="av">Aktivitätsdiagramm</button>
+  </div>
+  <div class="tgrp" style="margin-left:auto" id="vw-tabs">
+    <button class="tb ac" data-vw="cv">✏️ Zeichenfläche</button>
+    <button class="tb" data-vw="ex">📋 Aufgaben</button>
+    <button class="tb" data-vw="th">📖 Theorie</button>
+  </div>
+</div>
+
+<div class="main" id="v-cv">
+  <div class="sidebar">
+    <div id="tbanner" style="display:none" class="tbanner"></div>
+    <div class="slabel">Symbole</div>
+    <div class="pal" id="pal"></div>
+    <div class="csec">
+      <div class="csec-label">Verbindungstyp</div>
+      <select class="csel" id="csel"></select>
+    </div>
+    <div class="trow">
+      <button class="tbtn sel-mode" data-m="s" title="Auswählen (S)">↖</button>
+      <button class="tbtn" data-m="c" title="Verbinden (C)">⟶</button>
+      <button class="tbtn" data-m="d" title="Löschen (D)">✕</button>
+    </div>
+    <button class="vbtn" id="vbtn" style="display:none">✓ Aufgabe prüfen</button>
+  </div>
+  <div class="cwrap">
+    <button class="clrbtn" id="clrbtn">Leeren</button>
+    <svg id="cv" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+          <path d="M24 0L0 0 0 24" fill="none" stroke="#e8e6e0" stroke-width="0.6"/>
+        </pattern>
+        <marker id="ma" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#888"/></marker>
+        <marker id="mh" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0L9,4L0,8Z" fill="none" stroke="#888" stroke-width="1.5"/></marker>
+        <marker id="mhp" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0L9,4L0,8Z" fill="none" stroke="#534AB7" stroke-width="1.5"/></marker>
+        <marker id="map" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#534AB7"/></marker>
+        <marker id="mdh" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><path d="M1,5L7,1L13,5L7,9Z" fill="none" stroke="#534AB7" stroke-width="1.5"/></marker>
+        <marker id="mdf" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><path d="M1,5L7,1L13,5L7,9Z" fill="#534AB7"/></marker>
+        <marker id="mg" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#0F6E56"/></marker>
+        <marker id="mb" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#185FA5"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+      <g id="cg"></g>
+      <g id="eg"></g>
+    </svg>
+    <div class="hint" id="hint">Symbole per Drag & Drop auf die Fläche ziehen • Doppelklick zum Umbenennen</div>
+    <div class="fbx" id="fbx" style="display:none"></div>
+    <input class="ei" id="ei" style="display:none"/>
+  </div>
+</div>
+
+<div id="v-ex" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+  <div class="panel">
+    <h1 style="font-size:22px;font-weight:600;margin-bottom:4px">Übungsaufgaben</h1>
+    <p style="font-size:13px;color:#888;margin-bottom:22px">Wähle eine Aufgabe aus – sie wird auf der Zeichenfläche geladen.</p>
+    <div class="exgrid" id="exgrid"></div>
+  </div>
+</div>
+
+<div id="v-th" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+  <div class="panel">
+    <h1 style="font-size:22px;font-weight:600;margin-bottom:14px">Theorie & Symbole</h1>
+    <div class="tgrp" id="th-tabs">
+      <button class="tb uc ac" data-tt="uc">Use-Case</button>
+      <button class="tb cl" data-tt="cl">Klassendiagramm</button>
+      <button class="tb av" data-tt="av">Aktivitätsdiagramm</button>
+    </div>
+    <div class="thgrid" id="thcontent"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const ED={
+  actor:{w:62,h:88,lb:'Actor'},
+  uc:{w:150,h:60,lb:'Use Case'},
+  sys:{w:240,h:180,lb:'System'},
+  cls:{w:170,h:120,lb:'Klasse',at:['+ name: String','+ id: int'],mt:['+ getName(): String']},
+  ifc:{w:170,h:100,lb:'Interface',at:[],mt:['+ method(): void']},
+  enm:{w:160,h:90,lb:'Enum',at:['WERT_A','WERT_B']},
+  start:{w:38,h:38,lb:''},
+  end:{w:38,h:38,lb:''},
+  act:{w:150,h:50,lb:'Aktivität'},
+  dec:{w:82,h:62,lb:'?'},
+  fork:{w:130,h:14,lb:''},
+  note:{w:140,h:64,lb:'Notiz...'},
+};
+const PAL={
+  uc:['actor','uc','sys','note'],
+  cl:['cls','ifc','enm','note'],
+  av:['start','act','dec','fork','end','note']
+};
+const CO={
+  uc:[
+    {v:'assoc',l:'Assoziation ─────'},
+    {v:'inc',l:'«include» - - ->'},
+    {v:'ext',l:'«extend» - - ->'},
+    {v:'gen',l:'Generalisierung ──▷'}
+  ],
+  cl:[
+    {v:'assoc',l:'Assoziation ─────'},
+    {v:'inh',l:'Vererbung ──────▷'},
+    {v:'real',l:'Realisierung - - -▷'},
+    {v:'agg',l:'Aggregation ◇────'},
+    {v:'comp',l:'Komposition ◆────'},
+    {v:'dep',l:'Abhängigkeit - - ->'}
+  ],
+  av:[
+    {v:'trans',l:'Übergang ──────>'},
+    {v:'guard',l:'Guard [Bedingung]>'}
+  ]
+};
+const EX=[
+  {id:1,dt:'uc',ti:'Bibliothekssystem',
+   tx:'Erstelle ein Use-Case-Diagramm für ein Bibliothekssystem.\n\nAkteure: Kunde, Bibliothekar\nUse Cases:\n- Buch suchen\n- Buch ausleihen\n- Bücher verwalten\n- Ausleihvorgänge einsehen\n\nVerbinde Akteure mit passenden Use Cases innerhalb einer System-Boundary.',
+   hints:['Akteure stehen außerhalb der System-Boundary','Verbinde Actor → Use Case mit Assoziation','Bibliotekar und Kunde haben verschiedene Use Cases'],
+   va:(e,c)=>({ok:e.filter(x=>x.t==='actor').length>=2&&e.filter(x=>x.t==='uc').length>=3&&e.some(x=>x.t==='sys')&&c.length>=3,
+     ch:[{t:'Mindestens 2 Akteure (Actor)',ok:e.filter(x=>x.t==='actor').length>=2},
+         {t:'Mindestens 3 Use Cases (Ellipse)',ok:e.filter(x=>x.t==='uc').length>=3},
+         {t:'System-Boundary vorhanden',ok:e.some(x=>x.t==='sys')},
+         {t:'Mindestens 3 Verbindungen',ok:c.length>=3}]})},
+  {id:2,dt:'cl',ti:'Online-Shop',
+   tx:'Erstelle ein Klassendiagramm für einen Online-Shop.\n\nKlassen: Kunde, Bestellung, Produkt\n\nBeziehungen:\n- Kunde legt Bestellung auf (Assoziation 1 zu *)\n- Bestellung enthält Produkt (* zu *)\n\nFüge sinnvolle Attribute und Methoden hinzu.',
+   hints:['Assoziationen haben Multiplizitäten (1, *, 0..1)','Kunde hat: name, email, adresse','Bestellung hat: datum, status, gesamtpreis'],
+   va:(e,c)=>({ok:e.filter(x=>['cls','ifc'].includes(x.t)).length>=3&&c.length>=2,
+     ch:[{t:'Mindestens 3 Klassen',ok:e.filter(x=>['cls','ifc'].includes(x.t)).length>=3},
+         {t:'Mindestens 2 Beziehungen',ok:c.length>=2}]})},
+  {id:3,dt:'cl',ti:'Fahrzeug-Hierarchie',
+   tx:'Modelliere eine Vererbungshierarchie.\n\nOberklasse: Fahrzeug\nAttribute: marke: String, baujahr: int\nMethode: starten(): void\n\nUnterklassen: PKW, LKW\nPKW: anzahlSitze: int\nLKW: nutzlast: double\n\nVerwende Vererbungspfeile (hohle Pfeilspitze).',
+   hints:['Pfeil zeigt VON Unterklasse ZUR Oberklasse','LKW und PKW erben alle Attribute von Fahrzeug','Unterklassen können eigene Attribute hinzufügen'],
+   va:(e,c)=>({ok:e.filter(x=>['cls','ifc'].includes(x.t)).length>=3&&c.filter(x=>x.ct==='inh').length>=2,
+     ch:[{t:'Mindestens 3 Klassen',ok:e.filter(x=>['cls','ifc'].includes(x.t)).length>=3},
+         {t:'Mindestens 2 Vererbungspfeile',ok:c.filter(x=>x.ct==='inh').length>=2}]})},
+  {id:4,dt:'av',ti:'Login-Prozess',
+   tx:'Modelliere den Login-Ablauf:\n\n1. Start\n2. Eingabemaske anzeigen\n3. Nutzerdaten eingeben\n4. Credentials prüfen\n5. Korrekt?\n   Ja → Dashboard öffnen → End\n   Nein → Fehlermeldung anzeigen → weiter mit 3',
+   hints:['Entscheidungsrauten haben [Ja]/[Nein] Ausgänge','Der Rückpfeil bei Fehler bildet eine Schleife','Jede Aktivität beschreibt eine konkrete Aktion'],
+   va:(e,c)=>({ok:e.some(x=>x.t==='start')&&e.some(x=>x.t==='end')&&e.some(x=>x.t==='dec')&&e.filter(x=>x.t==='act').length>=3&&c.length>=4,
+     ch:[{t:'Start-Symbol vorhanden',ok:e.some(x=>x.t==='start')},
+         {t:'End-Symbol vorhanden',ok:e.some(x=>x.t==='end')},
+         {t:'Mindestens 1 Entscheidungsraute',ok:e.some(x=>x.t==='dec')},
+         {t:'Mindestens 3 Aktivitäten',ok:e.filter(x=>x.t==='act').length>=3},
+         {t:'Mindestens 4 Übergänge',ok:c.length>=4}]})},
+  {id:5,dt:'uc',ti:'Online-Banking',
+   tx:'Use-Case-Diagramm für ein Online-Banking-System.\n\nAkteure: Kunde, Bank-Admin\n\nKunde kann:\n- Kontostand einsehen\n- Überweisung tätigen\n- Transaktionshistorie abrufen\n\nAdmin kann:\n- Konten verwalten\n- Benutzer sperren\n\nBaue eine System-Boundary.',
+   hints:['Beide Akteure haben eigene Use Cases','Verwende Assoziationen zwischen Akteur und UC','«include» wenn ein UC immer einen anderen benötigt'],
+   va:(e,c)=>({ok:e.filter(x=>x.t==='actor').length>=2&&e.filter(x=>x.t==='uc').length>=4&&e.some(x=>x.t==='sys')&&c.length>=4,
+     ch:[{t:'Mindestens 2 Akteure',ok:e.filter(x=>x.t==='actor').length>=2},
+         {t:'Mindestens 4 Use Cases',ok:e.filter(x=>x.t==='uc').length>=4},
+         {t:'System-Boundary vorhanden',ok:e.some(x=>x.t==='sys')},
+         {t:'Mindestens 4 Verbindungen',ok:c.length>=4}]})},
+  {id:6,dt:'av',ti:'Bestellprozess',
+   tx:'Modelliere den E-Commerce-Bestellprozess:\n\nStart → Produkt auswählen → In Warenkorb legen\n→ Bestellung abschicken → Zahlung prüfen\n   Erfolgreich → Bestellung bestätigen → Versand → End\n   Fehlgeschlagen → Fehlermeldung → zurück zu Zahlung',
+   hints:['Fork/Join für parallele Abläufe nutzbar','Entscheidungsraute für Zahlung OK / Fehlgeschlagen','Rückschleife modelliert Wiederholung'],
+   va:(e,c)=>({ok:e.some(x=>x.t==='start')&&e.some(x=>x.t==='end')&&e.some(x=>x.t==='dec')&&e.filter(x=>x.t==='act').length>=4&&c.length>=5,
+     ch:[{t:'Start und End vorhanden',ok:e.some(x=>x.t==='start')&&e.some(x=>x.t==='end')},
+         {t:'Mindestens 1 Entscheidungsraute',ok:e.some(x=>x.t==='dec')},
+         {t:'Mindestens 4 Aktivitäten',ok:e.filter(x=>x.t==='act').length>=4},
+         {t:'Mindestens 5 Übergänge',ok:c.length>=5}]})},
+  {id:7,dt:'cl',ti:'Interface & Realisierung',
+   tx:'Modelliere das Zahlungssystem:\n\nInterface: Bezahlbar\n- Methode: bezahlen(betrag: double): boolean\n\nKlassen die Bezahlbar implementieren:\n- KreditkarteZahlung\n- PayPalZahlung\n- Bankueberweisung\n\nVerwende Realisierungspfeile.',
+   hints:['Gestrichelter Pfeil mit hohler Spitze = Realisierung','Pfeil zeigt VON der Klasse ZUM Interface','Alle Methoden des Interface müssen implementiert werden'],
+   va:(e,c)=>({ok:e.filter(x=>x.t==='ifc').length>=1&&e.filter(x=>x.t==='cls').length>=2&&c.filter(x=>x.ct==='real').length>=2,
+     ch:[{t:'Mindestens 1 Interface',ok:e.filter(x=>x.t==='ifc').length>=1},
+         {t:'Mindestens 2 Klassen',ok:e.filter(x=>x.t==='cls').length>=2},
+         {t:'Mindestens 2 Realisierungspfeile',ok:c.filter(x=>x.ct==='real').length>=2}]})},
+  {id:8,dt:'av',ti:'Passwort ändern',
+   tx:'Aktivitätsdiagramm: Passwort ändern\n\nStart → Altes Passwort eingeben\n→ Altes Passwort korrekt?\n  Nein → Fehlermeldung → End\n  Ja → Neues Passwort eingeben\n→ Passwörter übereinstimmend?\n  Nein → Fehlermeldung → zurück\n  Ja → Passwort speichern → Bestätigung → End',
+   hints:['Zwei Entscheidungsrauten erforderlich','Mehrere End-Knoten sind erlaubt','Rückschleife bei "Nein" zur Eingabe'],
+   va:(e,c)=>({ok:e.some(x=>x.t==='start')&&e.some(x=>x.t==='end')&&e.filter(x=>x.t==='dec').length>=2&&e.filter(x=>x.t==='act').length>=4&&c.length>=6,
+     ch:[{t:'Start-Symbol vorhanden',ok:e.some(x=>x.t==='start')},
+         {t:'Mindestens 1 End-Symbol',ok:e.some(x=>x.t==='end')},
+         {t:'Mindestens 2 Entscheidungsrauten',ok:e.filter(x=>x.t==='dec').length>=2},
+         {t:'Mindestens 4 Aktivitäten',ok:e.filter(x=>x.t==='act').length>=4},
+         {t:'Mindestens 6 Übergänge',ok:c.length>=6}]})}
+];
+
+const TH={
+  uc:[
+    {n:'Actor (Akteur)',d:'Externe Rolle oder Person, die mit dem System interagiert. Liegt immer außerhalb der System-Boundary. Kann Mensch, externes System oder Zeit sein.',sym:'actor'},
+    {n:'Use Case (Anwendungsfall)',d:'Eine Funktion oder ein Dienst des Systems aus Nutzerperspektive. Ellipse mit dem Namen. Liegt immer innerhalb der System-Boundary.',sym:'uc'},
+    {n:'System Boundary',d:'Rechteck mit gestricheltem Rand. Alle Use Cases liegen darin, alle Akteure außerhalb. Trägt den Systemnamen oben.',sym:'sys'},
+    {n:'Assoziation',d:'Einfache Linie zwischen Akteur und Use Case. Zeigt, dass der Akteur diesen Use Case ausführen kann. Kann auch gerichtet sein.',sym:'ca'},
+    {n:'«include»',d:'Gestrichelter Pfeil. Use Case A schließt B immer ein (obligatorisch). Richtung: A → B. Beispiel: "Überweisung" include "Authentifizieren".',sym:'ci'},
+    {n:'«extend»',d:'Gestrichelter Pfeil. B erweitert A optional unter Bedingung. Richtung: B → A. Beispiel: "Premium-Funktion" extend "Konto".',sym:'ce'},
+    {n:'Generalisierung',d:'Pfeil mit hohler Spitze zwischen Akteuren oder Use Cases. Kind erbt alle Eigenschaften des Elternteils.',sym:'cg'},
+  ],
+  cl:[
+    {n:'Klasse',d:'Rechteck mit 3 Abschnitten: Klassenname (oben, fett), Attribute (Mitte), Methoden (unten). Sichtbarkeit: + public, - private, # protected.',sym:'cls'},
+    {n:'Interface',d:'Klasse mit «interface» Stereotyp. Enthält nur Methodensignaturen – keine Implementierung. Klassen realisieren Interfaces.',sym:'ifc'},
+    {n:'Enumeration',d:'Rechteck mit «enumeration» Stereotyp. Aufzählung von Werten (Konstanten), z.B. STATUS = {OFFEN, GESCHLOSSEN, STORNIERT}.',sym:'enm'},
+    {n:'Vererbung (is-a)',d:'Durchgezogene Linie mit hohler Pfeilspitze → zur Oberklasse. Kind erbt alle Attribute und Methoden. Beispiel: PKW → Fahrzeug.',sym:'cinh'},
+    {n:'Realisierung',d:'Gestrichelte Linie mit hohler Pfeilspitze → zum Interface. Klasse verpflichtet sich, alle Interface-Methoden zu implementieren.',sym:'creal'},
+    {n:'Aggregation (has-a)',d:'Durchgezogene Linie mit hohler Raute am "Ganzes"-Ende. Schwache Beziehung: Teile können ohne das Ganze existieren. Beispiel: Team ◇── Person.',sym:'cagg'},
+    {n:'Komposition (part-of)',d:'Durchgezogene Linie mit gefüllter Raute am "Ganzes"-Ende. Starke Beziehung: Teile existieren NICHT ohne das Ganze. Beispiel: Haus ◆── Raum.',sym:'ccomp'},
+    {n:'Abhängigkeit',d:'Gestrichelter Pfeil mit «uses». Klasse A nutzt B kurzfristig (z.B. als Parameter). Schwächste Beziehung.',sym:'cdep'},
+  ],
+  av:[
+    {n:'Startknoten',d:'Gefüllter schwarzer Kreis. Einziger Startpunkt des Ablaufs. Pro Diagramm genau ein Startknoten. Hat immer Ausgang, keinen Eingang.',sym:'start'},
+    {n:'Endknoten',d:'Kreis mit gefülltem Kern (Stieraugen-Symbol). Beendet den Ablauf. Mehrere Endknoten erlaubt. Hat immer Eingang, keinen Ausgang.',sym:'end'},
+    {n:'Aktivität (Aktion)',d:'Abgerundetes Rechteck. Eine konkrete Tätigkeit im Ablauf (z.B. "Daten prüfen", "E-Mail senden"). Beschreibt was passiert, nicht wie.',sym:'act'},
+    {n:'Entscheidungsknoten',d:'Raute (Rhombus). Ein Eingang, mehrere Ausgänge mit Bedingungen: [ja] / [nein] oder eigene Bedingungen in eckigen Klammern.',sym:'dec'},
+    {n:'Fork / Join (Balken)',d:'Dicker schwarzer Balken. Fork: 1 Eingang → mehrere parallele Pfade. Join: mehrere Eingänge → 1 Ausgang (Synchronisierung).',sym:'fork'},
+    {n:'Übergang (Transition)',d:'Pfeil zwischen Knoten. Zeigt den Kontrollfluss. Kann mit Bedingung [guard] oder Ereignis beschriftet sein. Keine Schleifen ohne Knoten.',sym:'ctrans'},
+  ]
+};
+
+let S={dt:'uc',els:[],cns:[],sel:null,mode:'s',cf:null,ct:'assoc',vw:'cv',ex:null,drag:null,resize:null,edit:null,n:0,tdt:'uc'};
+let CVG,CGG,EGG,HINT,FBX,EI;
+let _dragPt=null;
+let _dblTap={id:null,t:0};
+
+function nid(){return 'e'+(++S.n);}
+
+function ctr(el){
+  return {x:el.x+el.w/2,y:el.y+el.h/2};
+}
+
+function edgePt(el,tx,ty){
+  const cx=el.x+el.w/2,cy=el.y+el.h/2;
+  const dx=tx-cx,dy=ty-cy;
+  if(Math.abs(dx)<0.01&&Math.abs(dy)<0.01) return {x:cx,y:cy};
+  if(el.t==='actor') return {x:cx,y:el.y+el.h*0.5};
+  if(el.t==='dec'){
+    const hw=el.w/2,hh=el.h/2;
+    if(Math.abs(dx)*hh>=Math.abs(dy)*hw){
+      const t=hw/Math.abs(dx);
+      return {x:cx+dx*t,y:cy+dy*t};
+    } else {
+      const t=hh/Math.abs(dy);
+      return {x:cx+dx*t,y:cy+dy*t};
+    }
+  }
+  if(el.t==='start'||el.t==='end'||el.t==='fork'){
+    const hw=el.w/2,hh=el.h/2;
+    const t=Math.min(hw/Math.abs(dx||.01),hh/Math.abs(dy||.01));
+    return {x:cx+dx*t,y:cy+dy*t};
+  }
+  const hw=el.w/2,hh=el.h/2;
+  const t=Math.min(hw/Math.abs(dx||.01),hh/Math.abs(dy||.01));
+  return {x:cx+dx*t,y:cy+dy*t};
+}
+
+function csty(ct){
+  const m={
+    assoc:{s:'#888',d:null,me:'url(#ma)',ms:null,lb:''},
+    inc:{s:'#888',d:'8 4',me:'url(#ma)',ms:null,lb:'«include»'},
+    ext:{s:'#888',d:'8 4',me:'url(#ma)',ms:null,lb:'«extend»'},
+    gen:{s:'#888',d:null,me:'url(#mh)',ms:null,lb:''},
+    inh:{s:'#534AB7',d:null,me:'url(#mhp)',ms:null,lb:''},
+    real:{s:'#534AB7',d:'8 4',me:'url(#mhp)',ms:null,lb:''},
+    agg:{s:'#534AB7',d:null,me:'url(#map)',ms:'url(#mdh)',lb:''},
+    comp:{s:'#534AB7',d:null,me:'url(#map)',ms:'url(#mdf)',lb:''},
+    dep:{s:'#534AB7',d:'5 4',me:'url(#map)',ms:null,lb:'«uses»'},
+    trans:{s:'#0F6E56',d:null,me:'url(#mg)',ms:null,lb:''},
+    guard:{s:'#0F6E56',d:null,me:'url(#mg)',ms:null,lb:''},
+  };
+  return m[ct]||m.assoc;
+}
+
+function dcol(dt){return dt==='uc'?'#185FA5':dt==='cl'?'#534AB7':'#0F6E56';}
+function dbg(dt){return dt==='uc'?'#e6f1fb':dt==='cl'?'#eeedfe':'#e1f5ee';}
+
+function shp(el,sel){
+  const {x,y,w,h,t,lb}=el;
+  const sc=S.cf===el.id?'#1D9E75':'#185FA5';
+  const uc=el.t==='actor'||el.t==='uc'||el.t==='sys';
+  const col=uc?'#185FA5':(t==='cls'||t==='ifc'||t==='enm')?'#534AB7':'#0F6E56';
+  const selC=sel?sc:col;
+
+  if(t==='actor'){
+    const cx=x+w/2;
+    return `<circle cx="${cx}" cy="${y+11}" r="9" fill="none" stroke="${selC}" stroke-width="2"/>`+
+      `<line x1="${cx}" y1="${y+20}" x2="${cx}" y2="${y+47}" stroke="${selC}" stroke-width="2"/>`+
+      `<line x1="${cx-16}" y1="${y+31}" x2="${cx+16}" y2="${y+31}" stroke="${selC}" stroke-width="2"/>`+
+      `<line x1="${cx}" y1="${y+47}" x2="${cx-13}" y2="${y+65}" stroke="${selC}" stroke-width="2"/>`+
+      `<line x1="${cx}" y1="${y+47}" x2="${cx+13}" y2="${y+65}" stroke="${selC}" stroke-width="2"/>`+
+      `<text x="${cx}" y="${y+h}" text-anchor="middle" fill="${sel?selC:'#444'}" font-size="11" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+  }
+  if(t==='uc'){
+    return `<ellipse cx="${x+w/2}" cy="${y+h/2}" rx="${w/2-2}" ry="${h/2-2}" fill="${sel?'#e6f1fb':'#f0f7ff'}" stroke="${sel?selC:'#185FA5'}" stroke-width="${sel?2:1.5}"/>`+
+      `<text x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle" fill="${sel?selC:'#185FA5'}" font-size="11" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+  }
+  if(t==='sys'){
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="none" stroke="${sel?selC:'#aaa'}" stroke-width="${sel?2:1.5}" stroke-dasharray="9 5"/>`+
+      `<text x="${x+w/2}" y="${y+17}" text-anchor="middle" fill="${sel?selC:'#999'}" font-size="12" font-family="'Segoe UI',system-ui,sans-serif" font-style="italic">${lb}</text>`;
+  }
+  if(t==='cls'||t==='ifc'||t==='enm'){
+    const st=t==='ifc'?'«interface»':t==='enm'?'«enumeration»':null;
+    const at=el.at||[],mt=el.mt||[];
+    const RH=18,hH=st?42:30,aH=Math.max(1,at.length)*RH,mH=(t==='cls'||t==='ifc')?Math.max(1,mt.length)*RH:0;
+    const tH=hH+aH+mH+8,bd=sel?selC:'#534AB7';
+    let s=`<rect x="${x}" y="${y}" width="${w}" height="${tH}" rx="4" fill="${sel?'#f0eeff':'#fafaf8'}" stroke="${bd}" stroke-width="${sel?2:1.5}"/>`;
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${hH}" rx="4" fill="${sel?'#e8e4fb':'#f0eeff'}" stroke="${bd}" stroke-width="${sel?2:1.5}"/>`;
+    s+=`<rect x="${x}" y="${y+hH-4}" width="${w}" height="4" fill="${sel?'#e8e4fb':'#f0eeff'}"/>`;
+    s+=`<line x1="${x}" y1="${y+hH}" x2="${x+w}" y2="${y+hH}" stroke="${bd}" stroke-width="1.2"/>`;
+    if(st) s+=`<text x="${x+w/2}" y="${y+13}" text-anchor="middle" fill="${sel?selC:'#7F77DD'}" font-size="9" font-family="'Menlo','Consolas',monospace">${st}</text>`;
+    s+=`<text x="${x+w/2}" y="${y+(st?30:21)}" text-anchor="middle" fill="${sel?selC:'#26215C'}" font-size="12" font-weight="600" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+    (at.length?at:['  ']).forEach((a,i)=>{
+      s+=`<text x="${x+8}" y="${y+hH+(i+1)*RH-3}" fill="${at.length?'#555':'#ccc'}" font-size="10" font-family="'Menlo','Consolas',monospace">${a}</text>`;
+    });
+    if(mH>0){
+      s+=`<line x1="${x}" y1="${y+hH+aH}" x2="${x+w}" y2="${y+hH+aH}" stroke="${bd}" stroke-width="0.8" opacity="0.5"/>`;
+      (mt.length?mt:['  ']).forEach((m,i)=>{
+        s+=`<text x="${x+8}" y="${y+hH+aH+(i+1)*RH-3}" fill="${mt.length?'#555':'#ccc'}" font-size="10" font-family="'Menlo','Consolas',monospace">${m}</text>`;
+      });
+    }
+    return s;
+  }
+  if(t==='start') return `<circle cx="${x+w/2}" cy="${y+h/2}" r="16" fill="${sel?selC:'#333'}"/>`;
+  if(t==='end') return `<circle cx="${x+w/2}" cy="${y+h/2}" r="17" fill="none" stroke="${sel?selC:'#333'}" stroke-width="2.5"/><circle cx="${x+w/2}" cy="${y+h/2}" r="10" fill="${sel?selC:'#333'}"/>`;
+  if(t==='act') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="24" fill="${sel?'#e1f5ee':'#edfbf5'}" stroke="${sel?selC:'#0F6E56'}" stroke-width="${sel?2:1.5}"/><text x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle" fill="${sel?selC:'#0F6E56'}" font-size="11" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+  if(t==='dec'){
+    const cx=x+w/2,cy=y+h/2;
+    return `<polygon points="${cx},${y} ${x+w},${cy} ${cx},${y+h} ${x},${cy}" fill="${sel?'#faeeda':'#fff8ec'}" stroke="${sel?selC:'#BA7517'}" stroke-width="${sel?2:1.5}"/><text x="${cx}" y="${cy+4}" text-anchor="middle" fill="${sel?selC:'#BA7517'}" font-size="11" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+  }
+  if(t==='fork') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${sel?selC:'#333'}"/>`;
+  if(t==='note'){
+    const fd=16;
+    return `<path d="M${x},${y}L${x+w-fd},${y}L${x+w},${y+fd}L${x+w},${y+h}L${x},${y+h}Z" fill="${sel?'#fffbe6':'#fffdf5'}" stroke="${sel?selC:'#B4B2A9'}" stroke-width="1.5"/>`+
+      `<path d="M${x+w-fd},${y}L${x+w-fd},${y+fd}L${x+w},${y+fd}" fill="none" stroke="${sel?selC:'#B4B2A9'}" stroke-width="1.5"/>`+
+      `<text x="${x+8}" y="${y+22}" fill="#888" font-size="10" font-family="'Segoe UI',system-ui,sans-serif">${lb}</text>`;
+  }
+  return '';
+}
+
+function belSVG(el){
+  const s=S.sel===el.id||S.cf===el.id;
+  const cur=S.mode==='d'?'not-allowed':S.mode==='c'?'crosshair':'grab';
+  let h='';
+  if(s) h+=`<rect x="${el.x-6}" y="${el.y-6}" width="${el.w+12}" height="${el.h+12}" rx="8" fill="none" stroke="${S.cf===el.id?'#1D9E75':'#185FA5'}" stroke-width="1.5" stroke-dasharray="6 3" opacity="0.7"/>`;
+  h+=shp(el,s);
+  if(s&&S.mode==='s'){
+    const hs=5;
+    [{k:'nw',cx:el.x,cy:el.y},{k:'ne',cx:el.x+el.w,cy:el.y},{k:'sw',cx:el.x,cy:el.y+el.h},{k:'se',cx:el.x+el.w,cy:el.y+el.h}]
+    .forEach(({k,cx,cy})=>{h+=`<rect data-handle="${k}" x="${cx-hs}" y="${cy-hs}" width="${hs*2}" height="${hs*2}" rx="2" fill="#fff" stroke="#185FA5" stroke-width="1.5" style="cursor:${k}-resize"/>`});
+  }
+  return `<g data-id="${el.id}" style="cursor:${cur}">${h}</g>`;
+}
+
+function bcnSVG(cn){
+  const f=S.els.find(e=>e.id===cn.from),t=S.els.find(e=>e.id===cn.to);
+  if(!f||!t) return '';
+  const tc2=ctr(t),fc2=ctr(f);
+  const fp=edgePt(f,tc2.x,tc2.y),tp=edgePt(t,fc2.x,fc2.y);
+  const cs=csty(cn.ct);
+  const mx=(fp.x+tp.x)/2,my=(fp.y+tp.y)/2;
+  const cur=S.mode==='d'?'pointer':'default';
+  let h=`<line x1="${fp.x}" y1="${fp.y}" x2="${tp.x}" y2="${tp.y}" stroke="${cs.s}" stroke-width="1.8"${cs.d?` stroke-dasharray="${cs.d}"`:''}${cs.me?` marker-end="${cs.me}"`:''}${cs.ms?` marker-start="${cs.ms}"`:''} opacity="0.85"/>`;
+  if(cs.lb) h+=`<text x="${mx}" y="${my-8}" text-anchor="middle" fill="#888" font-size="10" font-family="'Menlo','Consolas',monospace">${cs.lb}</text>`;
+  if(cn.lb) h+=`<text x="${mx}" y="${my+15}" text-anchor="middle" fill="#666" font-size="10" font-family="'Menlo','Consolas',monospace">${cn.lb}</text>`;
+  return `<g data-cid="${cn.id}" style="cursor:${cur}">${h}</g>`;
+}
+
+function render(){
+  EGG.innerHTML=S.els.map(belSVG).join('');
+  CGG.innerHTML=S.cns.map(bcnSVG).join('');
+  const hm={
+    s:'Klick=Auswählen  •  Drag=Verschieben  •  Doppelklick=Umbenennen  •  Entf=Löschen',
+    c:S.cf?'Jetzt Ziel-Element klicken um zu verbinden...':'Quell-Element klicken, dann Ziel-Element klicken',
+    d:'Element oder Verbindung klicken zum Löschen'
+  };
+  HINT.textContent=hm[S.mode]||'';
+  HINT.className='hint'+(S.mode==='c'&&S.cf?' conn-hint':'');
+  document.querySelectorAll('.tbtn').forEach(b=>{
+    b.className='tbtn';
+    const m=b.getAttribute('data-m');
+    if(m===S.mode) b.classList.add(m==='s'?'sel-mode':m==='c'?'conn-mode':'del-mode');
+  });
+  // show/hide empty state
+  const emp=document.getElementById('empty-state');
+  if(emp) emp.style.display=S.els.length===0?'flex':'none';
+}
+
+function palIcon(t,col){
+  const f=col+'20';
+  switch(t){
+    case 'actor':return`<svg width="28" height="44"><circle cx="14" cy="8" r="7" fill="none" stroke="${col}" stroke-width="1.5"/><line x1="14" y1="15" x2="14" y2="32" stroke="${col}" stroke-width="1.5"/><line x1="4" y1="22" x2="24" y2="22" stroke="${col}" stroke-width="1.5"/><line x1="14" y1="32" x2="5" y2="42" stroke="${col}" stroke-width="1.5"/><line x1="14" y1="32" x2="23" y2="42" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'uc':return`<svg width="60" height="26"><ellipse cx="30" cy="13" rx="28" ry="11" fill="${f}" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'sys':return`<svg width="54" height="34"><rect x="2" y="2" width="50" height="30" rx="3" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="7 3"/></svg>`;
+    case 'cls':return`<svg width="52" height="40"><rect x="2" y="2" width="48" height="36" rx="3" fill="${f}" stroke="${col}" stroke-width="1.5"/><rect x="2" y="2" width="48" height="14" rx="3" fill="${col}22"/><line x1="2" y1="16" x2="50" y2="16" stroke="${col}" stroke-width="1.2"/><line x1="2" y1="27" x2="50" y2="27" stroke="${col}" stroke-width="0.8"/></svg>`;
+    case 'ifc':return`<svg width="52" height="40"><rect x="2" y="2" width="48" height="36" rx="3" fill="${f}" stroke="${col}" stroke-width="1.5"/><text x="26" y="11" text-anchor="middle" fill="${col}" font-size="7" font-family="monospace">«ifc»</text><line x1="2" y1="18" x2="50" y2="18" stroke="${col}" stroke-width="1.2"/></svg>`;
+    case 'enm':return`<svg width="52" height="40"><rect x="2" y="2" width="48" height="36" rx="3" fill="${f}" stroke="${col}" stroke-width="1.5"/><text x="26" y="11" text-anchor="middle" fill="${col}" font-size="7" font-family="monospace">«enum»</text><line x1="2" y1="18" x2="50" y2="18" stroke="${col}" stroke-width="1.2"/></svg>`;
+    case 'start':return`<svg width="28" height="28"><circle cx="14" cy="14" r="12" fill="${col}"/></svg>`;
+    case 'end':return`<svg width="28" height="28"><circle cx="14" cy="14" r="12" fill="none" stroke="${col}" stroke-width="2"/><circle cx="14" cy="14" r="7" fill="${col}"/></svg>`;
+    case 'act':return`<svg width="60" height="28"><rect x="2" y="2" width="56" height="24" rx="12" fill="${f}" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'dec':return`<svg width="44" height="36"><polygon points="22,2 42,18 22,34 2,18" fill="${f}" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'fork':return`<svg width="54" height="14"><rect x="2" y="2" width="50" height="10" rx="2" fill="${col}"/></svg>`;
+    case 'note':return`<svg width="46" height="38"><path d="M2,2L30,2L44,14L44,36L2,36Z" fill="${f}" stroke="${col}" stroke-width="1.5"/><path d="M30,2L30,14L44,14" fill="none" stroke="${col}" stroke-width="1.5"/></svg>`;
+    default:return`<svg width="42" height="30"><rect x="2" y="2" width="38" height="26" rx="3" fill="${f}" stroke="${col}" stroke-width="1.5"/></svg>`;
+  }
+}
+
+function thSymSVG(sym,col){
+  switch(sym){
+    case 'actor':return palIcon('actor',col);
+    case 'uc':return palIcon('uc',col);
+    case 'sys':return palIcon('sys',col);
+    case 'cls':return palIcon('cls',col);
+    case 'ifc':return palIcon('ifc',col);
+    case 'enm':return palIcon('enm',col);
+    case 'start':return palIcon('start',col);
+    case 'end':return palIcon('end',col);
+    case 'act':return palIcon('act',col);
+    case 'dec':return palIcon('dec',col);
+    case 'fork':return palIcon('fork',col);
+    case 'ca':return`<svg width="80" height="20"><line x1="4" y1="10" x2="76" y2="10" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'ci':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="${col}" stroke-width="1.5" stroke-dasharray="7 4"/><polygon points="72,6 80,10 72,14" fill="${col}"/></svg>`;
+    case 'ce':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="${col}" stroke-width="1.5" stroke-dasharray="7 4"/><polygon points="72,6 80,10 72,14" fill="${col}"/></svg>`;
+    case 'cg':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="${col}" stroke-width="1.5"/><path d="M72,6L80,10L72,14Z" fill="none" stroke="${col}" stroke-width="1.5"/></svg>`;
+    case 'cinh':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="#534AB7" stroke-width="1.5"/><path d="M72,5L80,10L72,15Z" fill="none" stroke="#534AB7" stroke-width="2"/></svg>`;
+    case 'creal':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="#534AB7" stroke-width="1.5" stroke-dasharray="7 4"/><path d="M72,5L80,10L72,15Z" fill="none" stroke="#534AB7" stroke-width="2"/></svg>`;
+    case 'cagg':return`<svg width="80" height="20"><line x1="16" y1="10" x2="76" y2="10" stroke="#534AB7" stroke-width="1.5"/><path d="M0,10L8,5L16,10L8,15Z" fill="none" stroke="#534AB7" stroke-width="1.5"/></svg>`;
+    case 'ccomp':return`<svg width="80" height="20"><line x1="16" y1="10" x2="76" y2="10" stroke="#534AB7" stroke-width="1.5"/><path d="M0,10L8,5L16,10L8,15Z" fill="#534AB7"/></svg>`;
+    case 'cdep':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="#534AB7" stroke-width="1.5" stroke-dasharray="5 4"/><polygon points="72,6 80,10 72,14" fill="#534AB7"/></svg>`;
+    case 'ctrans':return`<svg width="80" height="20"><line x1="4" y1="10" x2="72" y2="10" stroke="#0F6E56" stroke-width="1.5"/><polygon points="72,6 80,10 72,14" fill="#0F6E56"/></svg>`;
+    default:return palIcon(sym,col)||'';
+  }
+}
+
+function bpal(){
+  const P=document.getElementById('pal');
+  P.innerHTML='';
+  const names={actor:'Actor',uc:'Use Case',sys:'System Boundary',cls:'Klasse',ifc:'Interface',enm:'Enumeration',start:'Start',end:'End',act:'Aktivität',dec:'Entscheidung',fork:'Fork / Join',note:'Notiz'};
+  const col=dcol(S.dt);
+  PAL[S.dt].forEach(t=>{
+    const d=document.createElement('div');
+    d.className='pi'; d.draggable=true; d.setAttribute('data-pt',t);
+    d.innerHTML=`<div style="flex-shrink:0;pointer-events:none">${palIcon(t,col)}</div><span class="pi-name" style="pointer-events:none">${names[t]}</span>`;
+    d.addEventListener('dragstart',e=>{_dragPt=t;e.dataTransfer.setData('text/plain',t);e.dataTransfer.effectAllowed='copy';});
+    P.appendChild(d);
+  });
+}
+
+function bcsel(){
+  const sel=document.getElementById('csel');
+  sel.innerHTML=CO[S.dt].map(o=>`<option value="${o.v}"${S.ct===o.v?' selected':''}>${o.l}</option>`).join('');
+  sel.onchange=()=>{S.ct=sel.value;};
+}
+
+function initEv(){
+  const cwrap=CVG.parentElement;
+  cwrap.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
+  cwrap.addEventListener('drop',e=>{
+    e.preventDefault();
+    const t=_dragPt||e.dataTransfer.getData('text/plain');
+    _dragPt=null;
+    if(!t) return;
+    const r=CVG.getBoundingClientRect(),def=ED[t];
+    if(!def) return;
+    const el={id:nid(),t,x:Math.max(5,e.clientX-r.left-def.w/2),y:Math.max(5,e.clientY-r.top-def.h/2),w:def.w,h:def.h,lb:def.lb};
+    if(def.at) el.at=[...def.at];
+    if(def.mt) el.mt=[...def.mt];
+    S.els.push(el); S.sel=el.id; render();
+  });
+  CVG.addEventListener('click',e=>{
+    const tg=e.target;
+    if(tg===CVG||tg.getAttribute('fill')==='url(#grid)'||tg.tagName==='svg'){
+      S.sel=null;S.cf=null;render();
+    }
+  });
+  EGG.addEventListener('mousedown',e=>{
+    if(e.target.hasAttribute('data-handle')&&S.mode==='s'){
+      const g=e.target.closest('[data-id]');
+      if(!g) return;
+      const id=g.getAttribute('data-id'),el=S.els.find(el=>el.id===id);
+      if(!el) return;
+      e.stopPropagation();
+      const r=CVG.getBoundingClientRect();
+      S.resize={id,handle:e.target.getAttribute('data-handle'),x0:el.x,y0:el.y,w0:el.w,h0:el.h,mx0:e.clientX-r.left,my0:e.clientY-r.top};
+      return;
+    }
+    const g=e.target.closest('[data-id]');
+    if(!g) return;
+    const id=g.getAttribute('data-id');
+    e.stopPropagation();
+    if(S.mode==='d'){
+      S.els=S.els.filter(el=>el.id!==id);
+      S.cns=S.cns.filter(c=>c.from!==id&&c.to!==id);
+      if(S.sel===id) S.sel=null;
+      render(); return;
+    }
+    if(S.mode==='c'){
+      if(!S.cf){S.cf=id;S.sel=id;render();}
+      else if(S.cf!==id){
+        S.cns.push({id:nid(),from:S.cf,to:id,ct:S.ct,lb:''});
+        S.cf=null;S.sel=null;render();
+      }
+      return;
+    }
+    // 's'-Mode: kein render() hier — DOM muss für click-Event stabil bleiben
+    S.sel=id;
+    const el=S.els.find(el=>el.id===id);
+    if(!el) return;
+    const r=CVG.getBoundingClientRect();
+    S.drag={id,ox:e.clientX-r.left-el.x,oy:e.clientY-r.top-el.y};
+  });
+  EGG.addEventListener('click',e=>{
+    const g=e.target.closest('[data-id]');
+    if(!g) return;
+    const id=g.getAttribute('data-id');
+    const now=Date.now();
+    if(_dblTap.id===id&&now-_dblTap.t<400){
+      _dblTap={id:null,t:0};
+      const el=S.els.find(el=>el.id===id);
+      if(!el) return;
+      S.drag=null;S.resize=null;
+      S.edit=id;
+      EI.value=el.lb;
+      EI.style.display='block';
+      const r=CVG.getBoundingClientRect();
+      EI.style.left=(el.x+el.w/2-70)+'px';
+      EI.style.top=(el.t==='actor'?el.y+el.h-20:el.y+el.h/2-14)+'px';
+      EI.style.width='142px';
+      EI.focus();EI.select();
+    } else {
+      _dblTap={id,t:now};
+    }
+  });
+  CGG.addEventListener('click',e=>{
+    const g=e.target.closest('[data-cid]');
+    if(!g) return;
+    if(S.mode==='d'){S.cns=S.cns.filter(c=>c.id!==g.getAttribute('data-cid'));render();}
+  });
+  window.addEventListener('mousemove',e=>{
+    const r=CVG.getBoundingClientRect();
+    if(S.resize){
+      const mx=e.clientX-r.left,my=e.clientY-r.top;
+      const el=S.els.find(el=>el.id===S.resize.id);
+      if(el){
+        const {handle,x0,y0,w0,h0,mx0,my0}=S.resize,MIN=30;
+        const dx=mx-mx0,dy=my-my0;
+        if(handle==='se'){el.w=Math.max(MIN,w0+dx);el.h=Math.max(MIN,h0+dy);}
+        else if(handle==='sw'){const nw=Math.max(MIN,w0-dx);el.x=x0+w0-nw;el.w=nw;el.h=Math.max(MIN,h0+dy);}
+        else if(handle==='ne'){const nh=Math.max(MIN,h0-dy);el.y=y0+h0-nh;el.h=nh;el.w=Math.max(MIN,w0+dx);}
+        else if(handle==='nw'){const nw=Math.max(MIN,w0-dx),nh=Math.max(MIN,h0-dy);el.x=x0+w0-nw;el.y=y0+h0-nh;el.w=nw;el.h=nh;}
+        render();
+      }
+      return;
+    }
+    if(!S.drag) return;
+    const el=S.els.find(el=>el.id===S.drag.id);
+    if(el){el.x=Math.max(0,e.clientX-r.left-S.drag.ox);el.y=Math.max(0,e.clientY-r.top-S.drag.oy);}
+    render();
+  });
+  window.addEventListener('mouseup',()=>{S.drag=null;S.resize=null;requestAnimationFrame(render);});
+  EI.addEventListener('blur',commitEdit);
+  EI.addEventListener('keydown',e=>{if(e.key==='Enter')commitEdit();if(e.key==='Escape'){S.edit=null;EI.style.display='none';}});
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT') return;
+    if(e.key==='Delete'||e.key==='Backspace'){
+      if(S.sel){S.els=S.els.filter(el=>el.id!==S.sel);S.cns=S.cns.filter(c=>c.from!==S.sel&&c.to!==S.sel);S.sel=null;render();}
+    }
+    if(e.key==='s'||e.key==='S'){setMode('s');}
+    if(e.key==='c'||e.key==='C'){setMode('c');}
+    if(e.key==='d'||e.key==='D'){setMode('d');}
+  });
+}
+
+function commitEdit(){
+  if(S.edit){const el=S.els.find(e=>e.id===S.edit);if(el)el.lb=EI.value;S.edit=null;EI.style.display='none';render();}
+}
+
+function setMode(m){
+  S.mode=m;if(m!=='c')S.cf=null;render();
+}
+
+function swVw(vw){
+  S.vw=vw;
+  document.getElementById('v-cv').style.display=vw==='cv'?'flex':'none';
+  document.getElementById('v-ex').style.display=vw==='ex'?'flex':'none';
+  document.getElementById('v-th').style.display=vw==='th'?'flex':'none';
+  document.querySelectorAll('#vw-tabs .tb').forEach(t=>t.classList.toggle('ac',t.getAttribute('data-vw')===vw));
+  if(vw==='ex') bex();
+  if(vw==='th') bth();
+}
+
+function swDt(dt){
+  if(S.els.length>0&&!confirm('Diagrammtyp wechseln löscht das aktuelle Diagramm. Fortfahren?')) return;
+  S.dt=dt;S.els=[];S.cns=[];S.sel=null;S.cf=null;S.ex=null;
+  S.ct=CO[dt][0].v;
+  document.querySelectorAll('#dt-tabs .tb').forEach(t=>t.classList.toggle('ac',t.getAttribute('data-dt')===dt));
+  document.getElementById('tbanner').style.display='none';
+  document.getElementById('vbtn').style.display='none';
+  FBX.style.display='none';
+  bpal(); bcsel(); render();
+}
+
+function bex(){
+  const G=document.getElementById('exgrid');
+  const dtc={'uc':'badge-uc','cl':'badge-cl','av':'badge-av'};
+  const dtn={'uc':'Use-Case','cl':'Klassendiagramm','av':'Aktivitätsdiagramm'};
+  const dtcol={'uc':'#185FA5','cl':'#534AB7','av':'#0F6E56'};
+  G.innerHTML=EX.map(ex=>`
+    <div class="exc">
+      <div class="ext"><span class="badge ${dtc[ex.dt]}">${dtn[ex.dt]}</span></div>
+      <div class="exh">${ex.ti}</div>
+      <div class="exd">${ex.tx}</div>
+      <div class="excr">Kriterien</div>
+      <ul>${ex.va([],[]).ch.map(c=>`<li>${c.t}</li>`).join('')}</ul>
+      <button class="exb" style="color:${dtcol[ex.dt]};border-color:${dtcol[ex.dt]}aa" onclick="startEx(${ex.id})">Aufgabe starten →</button>
+    </div>
+  `).join('');
+}
+
+function startEx(id){
+  const ex=EX.find(e=>e.id===id);
+  if(!ex) return;
+  swDt(ex.dt);
+  S.ex=id;
+  document.getElementById('tbanner').textContent='📋 Aufgabe: '+ex.ti+' – Zeichne das Diagramm, dann "Aufgabe prüfen" klicken';
+  document.getElementById('tbanner').style.display='block';
+  document.getElementById('vbtn').style.display='block';
+  FBX.style.display='none';
+  swVw('cv');
+}
+
+function checkEx(){
+  if(!S.ex) return;
+  const ex=EX.find(e=>e.id===S.ex);
+  if(!ex) return;
+  const r=ex.va(S.els,S.cns);
+  const hintEx=ex.hints||[];
+  FBX.style.display='block';
+  const pct=r.ch.filter(c=>c.ok).length/r.ch.length*100;
+  FBX.innerHTML=`<h3 style="color:${r.ok?'#0F6E56':'#A32D2D'}">${r.ok?'✓ Sehr gut! Aufgabe bestanden':'✗ Noch nicht vollständig'}</h3>`+
+    r.ch.map(c=>`<div class="fbx-row"><div class="fbx-dot ${c.ok?'ok':'no'}">${c.ok?'✓':'✗'}</div><span style="color:${c.ok?'#333':'#A32D2D'}">${c.t}</span></div>`).join('')+
+    (hintEx.length&&!r.ok?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid #e0ddd6"><div style="font-size:10px;font-weight:600;color:#999;text-transform:uppercase;margin-bottom:7px">Hinweise</div>${hintEx.map(h=>`<div style="font-size:11px;color:#666;margin-bottom:5px">💡 ${h}</div>`).join('')}</div>`:'');
+}
+
+function bth(){
+  const data=TH[S.tdt];
+  const col=dcol(S.tdt);
+  const C=document.getElementById('thcontent');
+  C.innerHTML=data.map(item=>`
+    <div class="thc">
+      <div class="thsym">${thSymSVG(item.sym,col)}</div>
+      <div class="thn">${item.n}</div>
+      <div class="thd">${item.d}</div>
+    </div>
+  `).join('');
+}
+
+// init
+window.addEventListener('DOMContentLoaded',()=>{
+  CVG=document.getElementById('cv');
+  CGG=document.getElementById('cg');
+  EGG=document.getElementById('eg');
+  HINT=document.getElementById('hint');
+  FBX=document.getElementById('fbx');
+  EI=document.getElementById('ei');
+
+  // empty state
+  const emptyDiv=document.createElement('div');
+  emptyDiv.id='empty-state';
+  emptyDiv.className='empty';
+  emptyDiv.innerHTML='<div class="empty-icon">✏️</div><div class="empty-txt">Symbole per Drag & Drop auf die Fläche ziehen</div>';
+  CVG.parentElement.appendChild(emptyDiv);
+
+  document.querySelectorAll('#dt-tabs .tb').forEach(t=>t.addEventListener('click',()=>swDt(t.getAttribute('data-dt'))));
+  document.querySelectorAll('#vw-tabs .tb').forEach(t=>t.addEventListener('click',()=>swVw(t.getAttribute('data-vw'))));
+  document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>setMode(b.getAttribute('data-m'))));
+  document.getElementById('clrbtn').addEventListener('click',()=>{
+    if(S.els.length===0||(confirm('Zeichenfläche wirklich leeren?'))){S.els=[];S.cns=[];S.sel=null;S.cf=null;FBX.style.display='none';render();}
+  });
+  document.getElementById('vbtn').addEventListener('click',checkEx);
+  document.querySelectorAll('#th-tabs .tb').forEach(t=>t.addEventListener('click',()=>{
+    S.tdt=t.getAttribute('data-tt');
+    document.querySelectorAll('#th-tabs .tb').forEach(x=>x.classList.toggle('ac',x.getAttribute('data-tt')===S.tdt));
+    bth();
+  }));
+
+  bpal(); bcsel(); initEv(); render();
+});
+
+window.startEx=startEx;
+</script>
+</body>
+</html>

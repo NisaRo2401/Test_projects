@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UML Lernstudio - IHK FIAE</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --paper: #fffdf8;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d8d0c2;
+      --accent: #c96f4a;
+      --accent-dark: #8e4c33;
+      --accent-soft: #f7dfd2;
+      --teal: #1e6f73;
+      --teal-soft: #d9efef;
+      --gold: #c18d1f;
+      --ok: #227c4d;
+      --ok-soft: #ddf5e8;
+      --warn: #9a3412;
+      --warn-soft: #ffedd5;
+      --shadow: 0 18px 45px rgba(70, 52, 30, 0.12);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(201, 111, 74, 0.14), transparent 32%),
+        radial-gradient(circle at top right, rgba(30, 111, 115, 0.14), transparent 28%),
+        linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+    }
+
+    h1, h2, h3, .display, .badge, button {
+      font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,248,240,0.96));
+      border: 1px solid rgba(141, 109, 75, 0.15);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      padding: 34px;
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 28px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -90px auto;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(30, 111, 115, 0.08);
+      filter: blur(4px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .display {
+      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      line-height: 0.95;
+      margin: 0 0 18px;
+      max-width: 11ch;
+    }
+
+    .lead {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      max-width: 60ch;
+      color: #334155;
+      margin-bottom: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff7f2;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.92);
+      color: var(--teal);
+      border: 1px solid rgba(30, 111, 115, 0.22);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(141, 109, 75, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .hero-panel {
+      background: linear-gradient(160deg, #234444 0%, #143233 100%);
+      color: #f3f7f7;
+      border-radius: 28px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 320px;
+    }
+
+    .hero-panel h2 { margin: 0 0 12px; font-size: 1.3rem; }
+    .hero-panel p {
+      color: rgba(243, 247, 247, 0.8);
+      line-height: 1.6;
+      margin: 0 0 18px;
+    }
+
+    .mini-board {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .uml-sample {
+      border: 2px solid rgba(255,255,255,0.74);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .uml-sample .line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+      font-size: 0.92rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      margin-top: 28px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid rgba(141, 109, 75, 0.16);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 22px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .section-title { margin: 0 0 14px; font-size: 1.2rem; }
+
+    .progress-wrap {
+      background: #efe7da;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 12px 0 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #e4a574);
+      transition: width 0.25s ease;
+    }
+
+    .progress-text {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .nav-button {
+      text-align: left;
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.14);
+      color: var(--ink);
+      border-radius: 18px;
+      padding: 14px 15px;
+    }
+
+    .nav-button.active {
+      background: var(--accent-soft);
+      border-color: rgba(201, 111, 74, 0.36);
+      color: var(--accent-dark);
+    }
+
+    .nav-button small {
+      display: block;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    .tip-box {
+      background: linear-gradient(180deg, #fff9ed, #fff4da);
+      border: 1px solid rgba(193, 141, 31, 0.24);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .tip-box strong { display: block; margin-bottom: 8px; color: #7c5a0b; }
+    .tip-box p { margin: 0; color: #6f5320; line-height: 1.55; font-size: 0.95rem; }
+
+    .content { display: grid; gap: 24px; }
+    .panel { padding: 24px; }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .toolbar p { margin: 0; color: var(--muted); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+
+    .lesson-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .lesson-card {
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.14);
+      border-radius: 20px;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .lesson-card h3 { margin: 0; font-size: 1.15rem; }
+    .lesson-card p, .lesson-card li { color: #475569; line-height: 1.55; }
+    .lesson-card ul { margin: 0; padding-left: 18px; }
+
+    .diagram-box {
+      background: #faf6f0;
+      border: 1px dashed rgba(141, 109, 75, 0.35);
+      border-radius: 16px;
+      padding: 14px;
+      font-family: "Courier New", monospace;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      color: #334155;
+    }
+
+    .checklist { display: grid; gap: 8px; margin-top: 10px; }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(217, 239, 239, 0.45);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .quiz-card, .trainer-card {
+      background: linear-gradient(180deg, #fffefb, #fff7f0);
+      border: 1px solid rgba(141, 109, 75, 0.16);
+      border-radius: 24px;
+      padding: 22px;
+    }
+
+    .quiz-meta { color: var(--muted); margin-bottom: 14px; }
+    .quiz-question { font-size: 1.2rem; margin-bottom: 18px; }
+    .answer-grid { display: grid; gap: 10px; }
+
+    .answer {
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.18);
+      border-radius: 18px;
+      color: var(--ink);
+      padding: 14px 16px;
+    }
+
+    .answer.correct {
+      background: var(--ok-soft);
+      border-color: rgba(34, 124, 77, 0.38);
+      color: #14532d;
+    }
+
+    .answer.wrong {
+      background: var(--warn-soft);
+      border-color: rgba(154, 52, 18, 0.3);
+      color: #7c2d12;
+    }
+
+    .feedback {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .feedback.show { display: block; }
+    .feedback.good { background: var(--ok-soft); color: #14532d; border: 1px solid rgba(34, 124, 77, 0.25); }
+    .feedback.bad { background: var(--warn-soft); color: #7c2d12; border: 1px solid rgba(154, 52, 18, 0.22); }
+
+    .practice-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .exercise-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .exercise-title { font-size: 1.35rem; margin: 0 0 12px; }
+    .exercise-text { color: #475569; line-height: 1.7; margin-bottom: 18px; }
+    .stack { display: grid; gap: 14px; }
+
+    .trainer-layout {
+      display: grid;
+      gap: 16px;
+    }
+
+    .trainer-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(141, 109, 75, 0.14);
+    }
+
+    .trainer-toolbar input,
+    .trainer-toolbar select {
+      border: 1px solid rgba(141, 109, 75, 0.2);
+      background: #fffdf9;
+      border-radius: 999px;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--ink);
+    }
+
+    .trainer-toolbar input {
+      min-width: 220px;
+      flex: 1;
+    }
+
+    .tool-hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .builder {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .palette {
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.14);
+      border-radius: 20px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .palette h4,
+    .board-panel h4 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .palette-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .palette-item {
+      border: 1px dashed rgba(141, 109, 75, 0.32);
+      background: #fffaf3;
+      border-radius: 16px;
+      padding: 12px;
+      cursor: grab;
+      user-select: none;
+      font-weight: 700;
+      color: #5b4630;
+    }
+
+    .palette-item small {
+      display: block;
+      margin-top: 4px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .board-panel {
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.14);
+      border-radius: 20px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .board-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .board {
+      position: relative;
+      min-height: 520px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(30, 111, 115, 0.14);
+      background:
+        linear-gradient(rgba(30,111,115,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,111,115,0.05) 1px, transparent 1px),
+        linear-gradient(180deg, #fcfbf7, #f7f1e7);
+      background-size: 32px 32px, 32px 32px, auto;
+    }
+
+    .board.empty::before {
+      content: "Ziehe Symbole aus der Palette hierher.";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #8b7a68;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    .board-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .board-node {
+      position: absolute;
+      min-width: 118px;
+      min-height: 56px;
+      padding: 10px 12px;
+      border: 2px solid #3d4a57;
+      background: #fffdf9;
+      border-radius: 16px;
+      cursor: move;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .board-node.selected {
+      outline: 3px solid rgba(201, 111, 74, 0.28);
+      border-color: var(--accent);
+    }
+
+    .board-node[data-type="actor"] {
+      min-width: 92px;
+      min-height: 92px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #fff, #f6fbfb);
+      border-style: dashed;
+    }
+
+    .board-node[data-type="usecase"] {
+      border-radius: 999px;
+      min-width: 150px;
+      min-height: 76px;
+    }
+
+    .board-node[data-type="start"],
+    .board-node[data-type="end"] {
+      min-width: 64px;
+      min-height: 64px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    .board-node[data-type="start"] {
+      background: #2d3748;
+      color: #f8fafc;
+      border-color: #2d3748;
+    }
+
+    .board-node[data-type="end"] {
+      background: radial-gradient(circle, #2d3748 0 40%, #fff 42% 100%);
+    }
+
+    .board-node[data-type="decision"] {
+      width: 96px;
+      height: 96px;
+      min-width: 96px;
+      min-height: 96px;
+      transform: rotate(45deg);
+      border-radius: 12px;
+      padding: 0;
+    }
+
+    .board-node[data-type="decision"] .node-label {
+      transform: rotate(-45deg);
+      width: 80px;
+    }
+
+    .board-node[data-type="class"] {
+      display: block;
+      min-width: 170px;
+      min-height: 110px;
+      padding: 0;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .board-node[data-type="class"] .node-label {
+      padding: 10px 12px;
+      border-bottom: 2px solid #3d4a57;
+      text-align: center;
+    }
+
+    .board-node[data-type="class"] .node-body {
+      font-size: 0.8rem;
+      padding: 10px 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .board-node[data-type="participant"] {
+      min-width: 126px;
+      min-height: 58px;
+      background: linear-gradient(180deg, #fff, #f4fbff);
+    }
+
+    .board-node[data-type="boundary"] {
+      min-width: 200px;
+      min-height: 140px;
+      justify-content: flex-start;
+      align-items: flex-start;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .node-label {
+      pointer-events: none;
+      white-space: pre-line;
+    }
+
+    .connection-chip {
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .review-card {
+      background: #fff;
+      border: 1px solid rgba(141, 109, 75, 0.14);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .review-card h3 { margin: 0 0 10px; }
+    .review-list { display: grid; gap: 10px; }
+    .review-item { border-radius: 14px; padding: 10px 12px; line-height: 1.55; }
+    .review-item.ok { background: var(--ok-soft); color: #14532d; }
+    .review-item.miss { background: var(--warn-soft); color: #7c2d12; }
+    .review-item.neutral { background: #f4f4f5; color: #3f3f46; }
+    .hidden { display: none; }
+
+    .footer-note {
+      margin-top: 26px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.6;
+      padding-bottom: 20px;
+    }
+
+    @media (max-width: 980px) {
+      .hero, .main-grid, .practice-grid, .builder { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .lesson-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 16px; }
+      .hero, .panel, .sidebar { padding: 18px; }
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">IHK FIAE · UML gezielt ueben</div>
+        <h1 class="display">UML Lernstudio fuer deine Pruefung</h1>
+        <p class="lead">
+          Diese Seite hilft dir beim Wiederholen, Verstehen und aktiven Ueben der UML-Diagrammtypen,
+          die in der FIAE-Pruefung typisch sind: Anwendungsfall-, Aktivitaets-, Klassen- und Sequenzdiagramm.
+        </p>
+        <div class="hero-actions">
+          <button class="primary" onclick="scrollToSection('lernen')">Mit Lernen starten</button>
+          <button class="secondary" onclick="scrollToSection('trainer')">Direkt ueben</button>
+        </div>
+        <div class="hero-grid">
+          <div class="stat">
+            <strong id="solvedCount">0 / 4</strong>
+            <span>Uebungsfaelle geloest</span>
+          </div>
+          <div class="stat">
+            <strong id="quizCount">0 / 6</strong>
+            <span>Quizfragen geschafft</span>
+          </div>
+          <div class="stat">
+            <strong>1 Seite</strong>
+            <span>Lernen, pruefen, wiederholen</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-panel">
+        <div>
+          <h2>Pruefungsfokus</h2>
+          <p>
+            Nicht jedes UML-Diagramm ist gleich wichtig. Fuer FIAE lohnt es sich vor allem,
+            Zweck, Elemente, Leserichtung und typische Fehlerbilder sicher zu koennen.
+          </p>
+        </div>
+        <div class="mini-board">
+          <strong>Merke:</strong>
+          <div class="uml-sample">
+            <div class="line"><span>Akteur</span><span>nutzt</span><span>Use Case</span></div>
+            <div class="line"><span>Objekt A</span><span>sendet Nachricht</span><span>Objekt B</span></div>
+            <div class="line"><span>Klasse</span><span>hat Attribute</span><span>Methoden</span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <div class="main-grid">
+      <aside class="card sidebar">
+        <h2 class="section-title">Dein Lernweg</h2>
+        <div class="progress-wrap"><div class="progress-fill" id="overallProgress"></div></div>
+        <div class="progress-text" id="overallProgressText">Noch kein Fortschritt gespeichert.</div>
+
+        <div class="nav-group">
+          <button class="nav-button active" data-filter="all" onclick="filterLessons('all', this)">
+            Alle Diagramme
+            <small>Kompletter Ueberblick</small>
+          </button>
+          <button class="nav-button" data-filter="analyse" onclick="filterLessons('analyse', this)">
+            Analyse
+            <small>Use Case und Aktivitaet</small>
+          </button>
+          <button class="nav-button" data-filter="entwurf" onclick="filterLessons('entwurf', this)">
+            Entwurf
+            <small>Klasse und Sequenz</small>
+          </button>
+        </div>
+
+        <div class="tip-box">
+          <strong>Pruefungstipp</strong>
+          <p>
+            Frage dich bei jeder Aufgabe zuerst: "Will ich einen Ablauf, eine Struktur oder ein Zusammenspiel zeigen?"
+            Damit findest du den richtigen Diagrammtyp oft schon in wenigen Sekunden.
+          </p>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="card panel" id="lernen">
+          <div class="toolbar">
+            <div>
+              <div class="pill">Lernbereich</div>
+              <h2 class="section-title">Die 4 wichtigsten UML-Diagramme fuer FIAE</h2>
+            </div>
+            <p>Jede Karte zeigt Zweck, Kernelemente und ein kompaktes Beispiel.</p>
+          </div>
+
+          <div class="lesson-grid" id="lessonGrid">
+            <article class="lesson-card" data-track="analyse">
+              <div class="pill">Anforderungsanalyse</div>
+              <h3>Anwendungsfalldiagramm</h3>
+              <p>
+                Zeigt, welche Akteure mit dem System interagieren und welche Funktionen aus fachlicher Sicht angeboten werden.
+              </p>
+              <div class="diagram-box">Akteur Kunde --> (Ticket buchen)
+Akteur Admin --> (Benutzer verwalten)</div>
+              <ul>
+                <li>Akteure stehen ausserhalb des Systems.</li>
+                <li>Use Cases beschreiben Ziele, keine technischen Klickfolgen.</li>
+                <li>Systemgrenze hilft, Verantwortlichkeiten sichtbar zu machen.</li>
+              </ul>
+              <div class="checklist">
+                <div class="check-item"><strong>Gut fuer:</strong> Anforderungen, Rollen, fachliche Funktionen</div>
+                <div class="check-item"><strong>Typischer Fehler:</strong> Datenbanktabellen oder Buttons einzeichnen</div>
+              </div>
+            </article>
+
+            <article class="lesson-card" data-track="analyse">
+              <div class="pill">Prozesssicht</div>
+              <h3>Aktivitaetsdiagramm</h3>
+              <p>
+                Zeigt einen Ablauf mit Entscheidungen, Schleifen und parallelen Schritten. Ideal, wenn du einen Prozess erklaeren sollst.
+              </p>
+              <div class="diagram-box">Start
+  -> Login pruefen
+  -> [gueltig?]
+     Ja -> Dashboard anzeigen
+     Nein -> Fehlermeldung anzeigen
+Ende</div>
+              <ul>
+                <li>Start- und Endknoten geben den Rahmen.</li>
+                <li>Entscheidungen brauchen klare Bedingungen.</li>
+                <li>Parallele Verarbeitung wird mit Synchronisationsbalken modelliert.</li>
+              </ul>
+              <div class="checklist">
+                <div class="check-item"><strong>Gut fuer:</strong> Workflows, Fachprozesse, Alternativen</div>
+                <div class="check-item"><strong>Typischer Fehler:</strong> Klassen oder Datenstrukturen statt Aktivitaeten zeigen</div>
+              </div>
+            </article>
+
+            <article class="lesson-card" data-track="entwurf">
+              <div class="pill">Struktursicht</div>
+              <h3>Klassendiagramm</h3>
+              <p>
+                Beschreibt statische Struktur: Klassen, Attribute, Methoden und Beziehungen. In der Pruefung oft fuer Domaenen- oder Entwurfsmodelle wichtig.
+              </p>
+              <div class="diagram-box">Kunde
+--------------------
+- kundennummer: int
+- name: String
+--------------------
++ bestellungAnlegen()</div>
+              <ul>
+                <li>Attribute beschreiben Zustand, Methoden Verhalten.</li>
+                <li>Assoziationen zeigen Beziehungen zwischen Klassen.</li>
+                <li>Multiplizitaeten wie 1, 0..1 oder 1..* sind oft Punktebringer.</li>
+              </ul>
+              <div class="checklist">
+                <div class="check-item"><strong>Gut fuer:</strong> Objektstruktur, Verantwortungen, Beziehungen</div>
+                <div class="check-item"><strong>Typischer Fehler:</strong> Ablauf in ein Klassendiagramm pressen</div>
+              </div>
+            </article>
+
+            <article class="lesson-card" data-track="entwurf">
+              <div class="pill">Interaktion</div>
+              <h3>Sequenzdiagramm</h3>
+              <p>
+                Zeigt zeitliche Reihenfolge von Nachrichten zwischen Objekten oder Komponenten. Perfekt fuer "wer ruft wen wann auf?".
+              </p>
+              <div class="diagram-box">Benutzer -> UI: login()
+UI -> AuthService: pruefeLogin()
+AuthService -> Datenbank: ladeBenutzer()
+Datenbank --> AuthService: Benutzerdaten</div>
+              <ul>
+                <li>Zeit verlaeuft von oben nach unten.</li>
+                <li>Lebenslinien stehen fuer Beteiligte.</li>
+                <li>Nachrichten benoetigen sinnvolle Operationsnamen.</li>
+              </ul>
+              <div class="checklist">
+                <div class="check-item"><strong>Gut fuer:</strong> Aufrufreihenfolgen, Schichten, Systemzusammenspiel</div>
+                <div class="check-item"><strong>Typischer Fehler:</strong> Nur Klassenbeziehungen ohne Nachrichten darstellen</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="card panel" id="quiz">
+          <div class="toolbar">
+            <div>
+              <div class="pill">Schnellcheck</div>
+              <h2 class="section-title">Quiz: Diagramm erkennen und korrekt einsetzen</h2>
+            </div>
+            <p>6 Fragen, direktes Feedback und Fortschrittsspeicherung im Browser.</p>
+          </div>
+
+          <div class="quiz-card">
+            <div class="quiz-meta" id="quizMeta">Frage 1 von 6</div>
+            <div class="quiz-question" id="quizQuestion"></div>
+            <div class="answer-grid" id="quizAnswers"></div>
+            <div class="feedback" id="quizFeedback"></div>
+          </div>
+        </section>
+
+        <section class="card panel" id="trainer">
+          <div class="toolbar">
+            <div>
+              <div class="pill">Praxistrainer</div>
+              <h2 class="section-title">Uebungsaufgaben mit Zeichenflaeche und Pruefung</h2>
+            </div>
+            <p>Ziehe UML-Symbole per Drag-and-Drop auf das Board, verbinde sie und lass deinen Aufbau pruefen.</p>
+          </div>
+
+          <div class="practice-grid">
+            <div class="trainer-card">
+              <div class="trainer-layout">
+                <div>
+                  <div class="exercise-meta">
+                    <span class="pill" id="exerciseType">Anwendungsfall</span>
+                    <span class="pill" id="exerciseLevel">Leicht</span>
+                  </div>
+                  <h3 class="exercise-title" id="exerciseTitle"></h3>
+                  <div class="exercise-text" id="exerciseText"></div>
+                </div>
+
+                <div class="trainer-toolbar">
+                  <input id="nodeLabelInput" type="text" placeholder="Name fuer ausgewaehltes Element" />
+                  <button class="secondary" onclick="applyNodeLabel()">Beschriftung setzen</button>
+                  <select id="relationType">
+                    <option value="association">Verbindung</option>
+                    <option value="flow">Ablauf</option>
+                    <option value="message">Nachricht</option>
+                  </select>
+                  <button class="secondary" id="connectButton" onclick="toggleConnectMode()">Verbinden</button>
+                  <button class="secondary" onclick="deleteSelectedNode()">Loeschen</button>
+                  <button class="secondary" onclick="clearBoard()">Board leeren</button>
+                </div>
+
+                <div class="builder">
+                  <aside class="palette">
+                    <h4>Symbolpalette</h4>
+                    <div class="palette-list" id="paletteList"></div>
+                    <div class="tool-hint">
+                      1. Symbol ziehen
+                      <br />
+                      2. Element anklicken
+                      <br />
+                      3. Beschriftung setzen oder zwei Elemente verbinden
+                    </div>
+                  </aside>
+
+                  <div class="board-panel">
+                    <div class="board-head">
+                      <h4>Zeichenflaeche</h4>
+                      <span class="connection-chip" id="boardStatus">Noch keine Elemente auf dem Board.</span>
+                    </div>
+                    <div class="board empty" id="diagramBoard">
+                      <svg class="board-svg" id="boardSvg"></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="hero-actions" style="margin-top:0; margin-bottom:0;">
+                  <button class="primary" onclick="checkExercise()">Diagramm pruefen</button>
+                  <button class="secondary" onclick="nextExercise()">Naechste Aufgabe</button>
+                  <button class="secondary" onclick="toggleSample()">Musterloesung</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <div class="review-card">
+                <h3>Dein Feedback</h3>
+                <div class="review-list" id="exerciseFeedback">
+                  <div class="review-item neutral">Ziehe zuerst ein paar passende UML-Elemente auf das Board.</div>
+                </div>
+              </div>
+
+              <div class="review-card hidden" id="sampleCard">
+                <h3>Musterloesung</h3>
+                <div class="diagram-box" id="sampleSolution"></div>
+              </div>
+
+              <div class="review-card">
+                <h3>So funktioniert der Builder</h3>
+                <div class="review-list">
+                  <div class="review-item neutral">Akteur, Aktivitaet, Klasse oder Teilnehmer aus der Palette ziehen.</div>
+                  <div class="review-item neutral">Element anklicken und oben den Namen setzen, zum Beispiel "Kunde" oder "Bestellung".</div>
+                  <div class="review-item neutral">Fuer Kanten zuerst "Verbinden" aktivieren, dann Quelle und Ziel anklicken.</div>
+                  <div class="review-item neutral">Die Pruefung achtet auf passende Symboltypen, wichtige Beschriftungen und erwartete Beziehungen.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <p class="footer-note">
+      Die Seite speichert deinen Fortschritt lokal im Browser. Sie ist bewusst auf pruefungsnahe Kernmuster reduziert,
+      damit du UML schneller erkennst und sicherer einsetzt.
+    </p>
+  </div>
+
+  <script>
+    const quizData = [
+      {
+        question: "Welches Diagramm eignet sich am besten, um Rollen und fachliche Funktionen eines Systems zu zeigen?",
+        answers: ["Klassendiagramm", "Anwendungsfalldiagramm", "Sequenzdiagramm"],
+        correct: 1,
+        explanation: "Anwendungsfalldiagramme verbinden Akteure mit fachlichen Zielen und sind ideal fuer die Anforderungsanalyse."
+      },
+      {
+        question: "Wenn du einen Prozess mit Entscheidungen und moeglichen Alternativen darstellen willst, welches Diagramm passt am besten?",
+        answers: ["Aktivitaetsdiagramm", "Klassendiagramm", "Paketdiagramm"],
+        correct: 0,
+        explanation: "Aktivitaetsdiagramme beschreiben Prozesse, Abzweigungen, Schleifen und parallele Aktivitaeten."
+      },
+      {
+        question: "Wofuer stehen Multiplizitaeten wie 1, 0..1 oder 1..* typischerweise?",
+        answers: ["Fuer Nachrichten im Sequenzdiagramm", "Fuer Kardinalitaeten im Klassendiagramm", "Fuer Start- und Endknoten im Aktivitaetsdiagramm"],
+        correct: 1,
+        explanation: "Multiplizitaeten beschreiben Beziehungen zwischen Klassen, etwa ein Kunde mit mehreren Bestellungen."
+      },
+      {
+        question: "In welchem Diagramm laeuft die Zeit hauptsaechlich von oben nach unten?",
+        answers: ["Sequenzdiagramm", "Use-Case-Diagramm", "Klassendiagramm"],
+        correct: 0,
+        explanation: "Im Sequenzdiagramm liest du Interaktionen entlang der Zeitachse von oben nach unten."
+      },
+      {
+        question: "Was ist ein typischer Fehler in einem Anwendungsfalldiagramm?",
+        answers: ["Akteure ausserhalb der Systemgrenze", "Technische UI-Klicks statt fachlicher Ziele", "Use Cases als Ellipsen darzustellen"],
+        correct: 1,
+        explanation: "Use Cases sollen fachliche Absichten zeigen, nicht jede technische Bedienhandlung."
+      },
+      {
+        question: "Welche Kombination passt am besten zu 'wer ruft wen wann auf'?",
+        answers: ["Klassendiagramm", "Aktivitaetsdiagramm", "Sequenzdiagramm"],
+        correct: 2,
+        explanation: "Das Sequenzdiagramm zeigt Interaktionen, Aufrufe und Rueckgaben in zeitlicher Reihenfolge."
+      }
+    ];
+
+    const paletteCatalog = {
+      actor: { title: "Akteur", hint: "Rolle ausserhalb des Systems" },
+      usecase: { title: "Use Case", hint: "Fachliche Funktion" },
+      boundary: { title: "Systemgrenze", hint: "Optionaler Systemrahmen" },
+      start: { title: "Start", hint: "Beginn des Ablaufs" },
+      activity: { title: "Aktivitaet", hint: "Ein Verarbeitungsschritt" },
+      decision: { title: "Entscheidung", hint: "Bedingung / Verzweigung" },
+      end: { title: "Ende", hint: "Abschluss des Ablaufs" },
+      class: { title: "Klasse", hint: "Strukturelement mit Name" },
+      participant: { title: "Teilnehmer", hint: "Objekt oder Komponente" }
+    };
+
+    const exercises = [
+      {
+        type: "Anwendungsfall",
+        level: "Leicht",
+        title: "Online-Terminbuchung fuer eine Werkstatt",
+        text: "Baue ein Use-Case-Diagramm. Ein Kunde bucht einen Termin. Ein Mitarbeiter bestaetigt den Termin. Optional kannst du eine Systemgrenze setzen.",
+        palette: ["actor", "usecase", "boundary"],
+        relations: ["association"],
+        expectedNodes: [
+          { type: "actor", labels: ["kunde"] },
+          { type: "actor", labels: ["mitarbeiter"] },
+          { type: "usecase", labels: ["termin buchen", "buchen"] },
+          { type: "usecase", labels: ["termin bestaetigen", "bestaetigen"] }
+        ],
+        expectedConnections: [
+          { kind: "association", from: ["kunde"], to: ["termin buchen", "buchen"] },
+          { kind: "association", from: ["mitarbeiter"], to: ["termin bestaetigen", "bestaetigen"] }
+        ],
+        sample: "Akteur Kunde -- Termin buchen\nAkteur Mitarbeiter -- Termin bestaetigen\nOptional: Systemgrenze Werkstattsystem"
+      },
+      {
+        type: "Aktivitaetsdiagramm",
+        level: "Mittel",
+        title: "Login-Prozess mit Fehlermeldung",
+        text: "Baue ein Aktivitaetsdiagramm mit Start, Eingabe, Pruefung, Entscheidung und zwei moeglichen Endpfaden: Dashboard oder Fehlermeldung.",
+        palette: ["start", "activity", "decision", "end"],
+        relations: ["flow"],
+        expectedNodes: [
+          { type: "start", labels: ["start"] },
+          { type: "activity", labels: ["zugangsdaten eingeben", "eingabe"] },
+          { type: "activity", labels: ["login pruefen", "pruefen"] },
+          { type: "decision", labels: ["gueltig", "daten gueltig", "ok"] },
+          { type: "activity", labels: ["dashboard anzeigen", "dashboard"] },
+          { type: "activity", labels: ["fehlermeldung anzeigen", "fehlermeldung"] },
+          { type: "end", labels: ["ende"] }
+        ],
+        expectedConnections: [
+          { kind: "flow", from: ["start"], to: ["zugangsdaten eingeben", "eingabe"] },
+          { kind: "flow", from: ["zugangsdaten eingeben", "eingabe"], to: ["login pruefen", "pruefen"] },
+          { kind: "flow", from: ["login pruefen", "pruefen"], to: ["gueltig", "daten gueltig", "ok"] },
+          { kind: "flow", from: ["gueltig", "daten gueltig", "ok"], to: ["dashboard anzeigen", "dashboard"] },
+          { kind: "flow", from: ["gueltig", "daten gueltig", "ok"], to: ["fehlermeldung anzeigen", "fehlermeldung"] }
+        ],
+        sample: "Start -> Zugangsdaten eingeben -> Login pruefen -> [Daten gueltig?]\nJa -> Dashboard anzeigen -> Ende\nNein -> Fehlermeldung anzeigen -> Ende"
+      },
+      {
+        type: "Klassendiagramm",
+        level: "Mittel",
+        title: "Bestellsystem modellieren",
+        text: "Baue ein Klassendiagramm mit Kunde und Bestellung. Kunde soll mehrere Bestellungen haben koennen. Die Klassen sollen sinnvoll benannt sein.",
+        palette: ["class"],
+        relations: ["association"],
+        expectedNodes: [
+          { type: "class", labels: ["kunde"] },
+          { type: "class", labels: ["bestellung"] }
+        ],
+        expectedConnections: [
+          { kind: "association", from: ["kunde"], to: ["bestellung"] }
+        ],
+        sample: "Klasse Kunde\nKlasse Bestellung\nAssoziation: Kunde 1 --- 0..* Bestellung"
+      },
+      {
+        type: "Sequenzdiagramm",
+        level: "Schwer",
+        title: "Passwort-Reset zwischen UI, Service und Datenbank",
+        text: "Baue ein Sequenzdiagramm mit beteiligten Teilnehmern. Benutzer startet den Reset ueber die UI, die UI ruft den Service auf, der Service liest Daten aus der Datenbank.",
+        palette: ["participant"],
+        relations: ["message"],
+        expectedNodes: [
+          { type: "participant", labels: ["benutzer"] },
+          { type: "participant", labels: ["ui"] },
+          { type: "participant", labels: ["passwortservice", "service"] },
+          { type: "participant", labels: ["datenbank"] }
+        ],
+        expectedConnections: [
+          { kind: "message", from: ["benutzer"], to: ["ui"] },
+          { kind: "message", from: ["ui"], to: ["passwortservice", "service"] },
+          { kind: "message", from: ["passwortservice", "service"], to: ["datenbank"] }
+        ],
+        sample: "Benutzer -> UI: Reset anfordern\nUI -> PasswortService: resetStarten()\nPasswortService -> Datenbank: ladeBenutzer()"
+      }
+    ];
+
+    const state = {
+      quizIndex: 0,
+      quizSolved: {},
+      exerciseIndex: 0,
+      solvedExercises: {}
+    };
+
+    const boardState = {
+      nodes: [],
+      connections: []
+    };
+
+    let nodeCounter = 0;
+    let selectedNodeId = null;
+    let connectMode = false;
+    let connectSourceId = null;
+    let dragPaletteType = null;
+    let dragNodeState = null;
+
+    function saveState() {
+      localStorage.setItem("uml_lernstudio_state", JSON.stringify(state));
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem("uml_lernstudio_state");
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        Object.assign(state, parsed);
+      } catch (error) {
+        console.warn("State konnte nicht geladen werden", error);
+      }
+    }
+
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function filterLessons(filter, button) {
+      document.querySelectorAll(".nav-button").forEach(btn => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      document.querySelectorAll(".lesson-card").forEach(card => {
+        const show = filter === "all" || card.dataset.track === filter;
+        card.style.display = show ? "grid" : "none";
+      });
+    }
+
+    function renderQuiz() {
+      const quiz = quizData[state.quizIndex];
+      document.getElementById("quizMeta").textContent = "Frage " + (state.quizIndex + 1) + " von " + quizData.length;
+      document.getElementById("quizQuestion").textContent = quiz.question;
+
+      const answerWrap = document.getElementById("quizAnswers");
+      answerWrap.innerHTML = "";
+
+      quiz.answers.forEach((answer, index) => {
+        const btn = document.createElement("button");
+        btn.className = "answer";
+        btn.textContent = answer;
+        btn.onclick = () => answerQuiz(index);
+        answerWrap.appendChild(btn);
+      });
+
+      const feedback = document.getElementById("quizFeedback");
+      feedback.className = "feedback";
+      feedback.textContent = "";
+    }
+
+    function answerQuiz(selectedIndex) {
+      const quiz = quizData[state.quizIndex];
+      const buttons = [...document.querySelectorAll("#quizAnswers .answer")];
+      buttons.forEach((button, index) => {
+        button.disabled = true;
+        if (index === quiz.correct) button.classList.add("correct");
+        if (index === selectedIndex && index !== quiz.correct) button.classList.add("wrong");
+      });
+
+      const feedback = document.getElementById("quizFeedback");
+      const solved = selectedIndex === quiz.correct;
+      feedback.className = "feedback show " + (solved ? "good" : "bad");
+      feedback.textContent = (solved ? "Richtig. " : "Noch nicht ganz. ") + quiz.explanation;
+      state.quizSolved[state.quizIndex] = solved;
+      saveState();
+      updateProgress();
+
+      setTimeout(() => {
+        state.quizIndex = (state.quizIndex + 1) % quizData.length;
+        saveState();
+        renderQuiz();
+      }, 1800);
+    }
+
+    function normalizeText(text) {
+      return (text || "")
+        .toLowerCase()
+        .replace(/ae/g, "a")
+        .replace(/oe/g, "o")
+        .replace(/ue/g, "u")
+        .replace(/ß/g, "ss")
+        .trim();
+    }
+
+    function getActiveExercise() {
+      return exercises[state.exerciseIndex];
+    }
+
+    function buildRelationOptions(exercise) {
+      const select = document.getElementById("relationType");
+      const relationLabels = { association: "Verbindung", flow: "Ablauf", message: "Nachricht" };
+      select.innerHTML = "";
+
+      exercise.relations.forEach(relation => {
+        const option = document.createElement("option");
+        option.value = relation;
+        option.textContent = relationLabels[relation] || relation;
+        select.appendChild(option);
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function renderPalette() {
+      const exercise = getActiveExercise();
+      const list = document.getElementById("paletteList");
+      list.innerHTML = "";
+
+      exercise.palette.forEach(type => {
+        const item = document.createElement("div");
+        item.className = "palette-item";
+        item.draggable = true;
+        item.dataset.type = type;
+        item.innerHTML = paletteCatalog[type].title + "<small>" + paletteCatalog[type].hint + "</small>";
+        item.addEventListener("dragstart", event => {
+          dragPaletteType = type;
+          event.dataTransfer.setData("text/plain", type);
+        });
+        item.addEventListener("click", () => addNode(type, 30 + boardState.nodes.length * 14, 30 + boardState.nodes.length * 14));
+        list.appendChild(item);
+      });
+    }
+
+    function createNodeMarkup(node) {
+      const bodyText = node.type === "class" ? '<div class="node-body">Attribute\nMethoden</div>' : "";
+      return '<div class="node-label">' + escapeHtml(node.label || paletteCatalog[node.type].title) + '</div>' + bodyText;
+    }
+
+    function addNode(type, x, y) {
+      const board = document.getElementById("diagramBoard");
+      const node = {
+        id: "node-" + (++nodeCounter),
+        type,
+        label: paletteCatalog[type].title,
+        x: Math.max(10, Math.min(x, Math.max(10, board.clientWidth - 190))),
+        y: Math.max(10, Math.min(y, Math.max(10, board.clientHeight - 140)))
+      };
+
+      if (type === "start") node.label = "Start";
+      if (type === "end") node.label = "Ende";
+      if (type === "decision") node.label = "Gueltig?";
+
+      boardState.nodes.push(node);
+      selectedNodeId = node.id;
+      document.getElementById("nodeLabelInput").value = node.label;
+      renderBoard();
+    }
+
+    function selectNode(nodeId) {
+      selectedNodeId = nodeId;
+      const node = boardState.nodes.find(item => item.id === nodeId);
+      document.getElementById("nodeLabelInput").value = node ? node.label : "";
+      renderBoard();
+    }
+
+    function applyNodeLabel() {
+      const node = boardState.nodes.find(item => item.id === selectedNodeId);
+      if (!node) return;
+      const value = document.getElementById("nodeLabelInput").value.trim();
+      if (!value) return;
+      node.label = value;
+      renderBoard();
+    }
+
+    function deleteSelectedNode() {
+      if (!selectedNodeId) return;
+      boardState.nodes = boardState.nodes.filter(node => node.id !== selectedNodeId);
+      boardState.connections = boardState.connections.filter(conn => conn.from !== selectedNodeId && conn.to !== selectedNodeId);
+      selectedNodeId = null;
+      connectSourceId = null;
+      document.getElementById("nodeLabelInput").value = "";
+      renderBoard();
+    }
+
+    function clearBoard() {
+      boardState.nodes = [];
+      boardState.connections = [];
+      selectedNodeId = null;
+      connectSourceId = null;
+      connectMode = false;
+      document.getElementById("nodeLabelInput").value = "";
+      document.getElementById("connectButton").textContent = "Verbinden";
+      renderBoard();
+    }
+
+    function toggleConnectMode() {
+      connectMode = !connectMode;
+      connectSourceId = null;
+      document.getElementById("connectButton").textContent = connectMode ? "Verbinden aktiv" : "Verbinden";
+      updateBoardStatus();
+    }
+
+    function handleNodeClick(nodeId) {
+      if (!connectMode) {
+        selectNode(nodeId);
+        return;
+      }
+
+      if (!connectSourceId) {
+        connectSourceId = nodeId;
+        selectNode(nodeId);
+        updateBoardStatus("Quelle gewaehlt. Jetzt Ziel anklicken.");
+        return;
+      }
+
+      if (connectSourceId === nodeId) {
+        connectSourceId = null;
+        updateBoardStatus("Verbindung abgebrochen.");
+        return;
+      }
+
+      const kind = document.getElementById("relationType").value;
+      const exists = boardState.connections.some(conn => conn.from === connectSourceId && conn.to === nodeId && conn.kind === kind);
+      if (!exists) {
+        boardState.connections.push({ from: connectSourceId, to: nodeId, kind });
+      }
+
+      connectSourceId = null;
+      renderBoard();
+    }
+
+    function getNodeCenter(node) {
+      const widthByType = { actor: 92, usecase: 150, boundary: 200, start: 64, end: 64, decision: 96, class: 170, participant: 126, activity: 118 };
+      const heightByType = { actor: 92, usecase: 76, boundary: 140, start: 64, end: 64, decision: 96, class: 110, participant: 58, activity: 56 };
+      return {
+        x: node.x + (widthByType[node.type] || 118) / 2,
+        y: node.y + (heightByType[node.type] || 56) / 2
+      };
+    }
+
+    function renderConnections() {
+      const svg = document.getElementById("boardSvg");
+      const defs = [
+        "<defs>",
+        '<marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e6f73"></path></marker>',
+        '<marker id="arrow-message" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8e4c33"></path></marker>',
+        "</defs>"
+      ].join("");
+
+      const lines = boardState.connections.map(connection => {
+        const from = boardState.nodes.find(node => node.id === connection.from);
+        const to = boardState.nodes.find(node => node.id === connection.to);
+        if (!from || !to) return "";
+
+        const start = getNodeCenter(from);
+        const end = getNodeCenter(to);
+        const marker = connection.kind === "association" ? "" : ' marker-end="url(#arrow-' + connection.kind + ')"';
+        const dash = connection.kind === "message" ? ' stroke-dasharray="8 6"' : "";
+        const color = connection.kind === "flow" ? "#1e6f73" : connection.kind === "message" ? "#8e4c33" : "#475569";
+
+        return '<line x1="' + start.x + '" y1="' + start.y + '" x2="' + end.x + '" y2="' + end.y + '" stroke="' + color + '" stroke-width="3"' + dash + marker + "></line>";
+      }).join("");
+
+      svg.innerHTML = defs + lines;
+    }
+
+    function updateBoardStatus(customText) {
+      const status = document.getElementById("boardStatus");
+      if (customText) {
+        status.textContent = customText;
+        return;
+      }
+
+      const nodeCount = boardState.nodes.length;
+      const connectionCount = boardState.connections.length;
+      status.textContent = connectMode
+        ? "Verbindungsmodus aktiv · " + nodeCount + " Elemente · " + connectionCount + " Kanten"
+        : nodeCount === 0
+          ? "Noch keine Elemente auf dem Board."
+          : nodeCount + " Elemente · " + connectionCount + " Kanten";
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("diagramBoard");
+      board.classList.toggle("empty", boardState.nodes.length === 0);
+      board.querySelectorAll(".board-node").forEach(node => node.remove());
+
+      boardState.nodes.forEach(node => {
+        const element = document.createElement("div");
+        element.className = "board-node" + (node.id === selectedNodeId ? " selected" : "");
+        element.dataset.id = node.id;
+        element.dataset.type = node.type;
+        element.style.left = node.x + "px";
+        element.style.top = node.y + "px";
+        element.innerHTML = createNodeMarkup(node);
+
+        element.addEventListener("click", event => {
+          event.stopPropagation();
+          handleNodeClick(node.id);
+        });
+
+        element.addEventListener("pointerdown", event => {
+          if (connectMode) return;
+          const boardRect = board.getBoundingClientRect();
+          dragNodeState = {
+            id: node.id,
+            offsetX: event.clientX - boardRect.left - node.x,
+            offsetY: event.clientY - boardRect.top - node.y
+          };
+          element.setPointerCapture(event.pointerId);
+        });
+
+        board.appendChild(element);
+      });
+
+      renderConnections();
+      updateBoardStatus();
+    }
+
+    function setupBoard() {
+      const board = document.getElementById("diagramBoard");
+
+      board.addEventListener("dragover", event => event.preventDefault());
+
+      board.addEventListener("drop", event => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData("text/plain") || dragPaletteType;
+        if (!type) return;
+        const rect = board.getBoundingClientRect();
+        addNode(type, event.clientX - rect.left - 60, event.clientY - rect.top - 30);
+        dragPaletteType = null;
+      });
+
+      board.addEventListener("click", () => {
+        if (connectMode) return;
+        selectedNodeId = null;
+        document.getElementById("nodeLabelInput").value = "";
+        renderBoard();
+      });
+
+      document.getElementById("nodeLabelInput").addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyNodeLabel();
+        }
+      });
+
+      window.addEventListener("pointermove", event => {
+        if (!dragNodeState) return;
+        const boardRect = board.getBoundingClientRect();
+        const node = boardState.nodes.find(item => item.id === dragNodeState.id);
+        if (!node) return;
+
+        node.x = Math.max(10, Math.min(event.clientX - boardRect.left - dragNodeState.offsetX, board.clientWidth - 190));
+        node.y = Math.max(10, Math.min(event.clientY - boardRect.top - dragNodeState.offsetY, board.clientHeight - 140));
+        renderBoard();
+      });
+
+      window.addEventListener("pointerup", () => {
+        dragNodeState = null;
+      });
+    }
+
+    function renderExercise() {
+      const exercise = getActiveExercise();
+      document.getElementById("exerciseType").textContent = exercise.type;
+      document.getElementById("exerciseLevel").textContent = exercise.level;
+      document.getElementById("exerciseTitle").textContent = exercise.title;
+      document.getElementById("exerciseText").textContent = exercise.text;
+      document.getElementById("sampleSolution").textContent = exercise.sample;
+      document.getElementById("sampleCard").classList.add("hidden");
+      document.getElementById("exerciseFeedback").innerHTML =
+        '<div class="review-item neutral">Baue jetzt dein Diagramm auf. Die Pruefung achtet auf Symboltyp, Namen und wichtige Beziehungen.</div>';
+      buildRelationOptions(exercise);
+      renderPalette();
+      clearBoard();
+    }
+
+    function matchesAliases(label, aliases) {
+      const value = normalizeText(label);
+      return aliases.some(alias => value.includes(normalizeText(alias)));
+    }
+
+    function findMatchingNode(expected) {
+      return boardState.nodes.find(node => node.type === expected.type && matchesAliases(node.label, expected.labels));
+    }
+
+    function findMatchingConnection(expected) {
+      return boardState.connections.find(connection => {
+        if (connection.kind !== expected.kind) return false;
+        const fromNode = boardState.nodes.find(node => node.id === connection.from);
+        const toNode = boardState.nodes.find(node => node.id === connection.to);
+        if (!fromNode || !toNode) return false;
+        return matchesAliases(fromNode.label, expected.from) && matchesAliases(toNode.label, expected.to);
+      });
+    }
+
+    function checkExercise() {
+      const exercise = getActiveExercise();
+      const feedback = document.getElementById("exerciseFeedback");
+      const items = [];
+
+      if (boardState.nodes.length === 0) {
+        feedback.innerHTML = '<div class="review-item miss">Dein Board ist noch leer. Ziehe zuerst passende UML-Symbole auf die Zeichenflaeche.</div>';
+        return;
+      }
+
+      let nodeHits = 0;
+      let connectionHits = 0;
+
+      exercise.expectedNodes.forEach(expected => {
+        if (findMatchingNode(expected)) {
+          nodeHits += 1;
+          items.push('<div class="review-item ok">Passendes Element gefunden: <strong>' + expected.labels[0] + "</strong>.</div>");
+        } else {
+          items.push('<div class="review-item miss">Fehlt oder falsch typisiert: <strong>' + expected.labels[0] + "</strong>.</div>");
+        }
+      });
+
+      exercise.expectedConnections.forEach(expected => {
+        if (findMatchingConnection(expected)) {
+          connectionHits += 1;
+          items.push('<div class="review-item ok">Beziehung erkannt: <strong>' + expected.from[0] + " -> " + expected.to[0] + "</strong>.</div>");
+        } else {
+          items.push('<div class="review-item miss">Beziehung fehlt: <strong>' + expected.from[0] + " -> " + expected.to[0] + "</strong>.</div>");
+        }
+      });
+
+      const solved = nodeHits === exercise.expectedNodes.length && connectionHits >= Math.max(1, exercise.expectedConnections.length - 1);
+      if (solved) {
+        state.solvedExercises[state.exerciseIndex] = true;
+        items.unshift('<div class="review-item ok">Sehr gut. Dein Diagramm deckt die zentralen Pruefungsbausteine dieser Aufgabe ab.</div>');
+      } else {
+        items.unshift('<div class="review-item miss">Guter Anfang, aber es fehlen noch wichtige Elemente oder Verbindungen.</div>');
+      }
+
+      if (boardState.nodes.length > exercise.expectedNodes.length + 2) {
+        items.push('<div class="review-item neutral">Du hast mehr Elemente als noetig gesetzt. Fuer die Pruefung ist vor allem eine klare Kernstruktur wichtig.</div>');
+      }
+
+      feedback.innerHTML = items.join("");
+      saveState();
+      updateProgress();
+    }
+
+    function nextExercise() {
+      state.exerciseIndex = (state.exerciseIndex + 1) % exercises.length;
+      saveState();
+      renderExercise();
+    }
+
+    function toggleSample() {
+      document.getElementById("sampleCard").classList.toggle("hidden");
+    }
+
+    function updateProgress() {
+      const solvedExercises = Object.values(state.solvedExercises).filter(Boolean).length;
+      const solvedQuiz = Object.values(state.quizSolved).filter(Boolean).length;
+      const total = exercises.length + quizData.length;
+      const done = solvedExercises + solvedQuiz;
+      const percentage = Math.round((done / total) * 100);
+
+      document.getElementById("solvedCount").textContent = solvedExercises + " / " + exercises.length;
+      document.getElementById("quizCount").textContent = solvedQuiz + " / " + quizData.length;
+      document.getElementById("overallProgress").style.width = percentage + "%";
+      document.getElementById("overallProgressText").textContent =
+        percentage === 0
+          ? "Noch kein Fortschritt gespeichert."
+          : "Du hast " + done + " von " + total + " Lernschritten geschafft (" + percentage + "%).";
+    }
+
+    loadState();
+    setupBoard();
+    renderQuiz();
+    renderExercise();
+    updateProgress();
+  </script>
+</body>
+</html>
