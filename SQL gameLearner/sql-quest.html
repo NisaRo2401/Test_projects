@@ -80,6 +80,9 @@ table.rt tr:hover td{background:#1c2128;}
 .null-v{color:#8b949e;font-style:italic;}
 .btn-next{display:inline-block;margin-top:10px;padding:7px 16px;font-size:12px;font-weight:600;background:#1f6feb;color:#fff;border:none;border-radius:6px;cursor:pointer;}
 .btn-next:hover{background:#388bfd;}
+.btn-sol{padding:7px 12px;font-size:12px;background:none;border:1px solid #6e40c9;border-radius:6px;cursor:pointer;color:#d2a8ff;}
+.btn-sol:hover{background:#1e1040;}
+.mysql-badge{font-size:10px;padding:2px 8px;background:#0d2038;border:1px solid #1f6feb;border-radius:10px;color:#79c0ff;margin-left:auto;}
 
 /* Schema */
 .schema-panel{padding:16px;overflow-y:auto;}
@@ -321,11 +324,11 @@ const T=[
    tags:['Multi-JOIN','3 Tabellen']},
 
   {id:16,lv:4,xp:100,title:'Self JOIN: Wer ist Vorgesetzter?',tables:['mitarbeiter'],
-   desc:"Zeige für jeden Mitarbeiter den vollständigen Namen (<code>vorname || ' ' || nachname</code>) und den Namen seines Vorgesetzten. Spalten: <code>mitarbeiter</code>, <code>vorgesetzter</code>. Auch Mitarbeiter ohne Chef sollen erscheinen.",
-   sql:"SELECT m.vorname||' '||m.nachname AS mitarbeiter, v.vorname||' '||v.nachname AS vorgesetzter FROM mitarbeiter m LEFT JOIN mitarbeiter v ON m.vorgesetzter_id = v.id",
+   desc:"Zeige für jeden Mitarbeiter den vollständigen Namen und den Namen seines Vorgesetzten. Nutze <code>CONCAT(vorname, ' ', nachname)</code>. Spalten: <code>mitarbeiter</code>, <code>vorgesetzter</code>. Auch Mitarbeiter ohne Chef sollen erscheinen.",
+   sql:"SELECT CONCAT(m.vorname,' ',m.nachname) AS mitarbeiter, CONCAT(v.vorname,' ',v.nachname) AS vorgesetzter FROM mitarbeiter m LEFT JOIN mitarbeiter v ON m.vorgesetzter_id = v.id",
    hints:['Eine Tabelle, die auf sich selbst verweist – das nennt man Self Join.','Dieselbe Tabelle zweimal einbinden, mit verschiedenen Aliasen: <code>m</code> und <code>v</code>.','<code>LEFT JOIN</code> damit auch die Chefin (ohne Vorgesetzte) erscheint.',
-   "In SQLite verknüpft <code>||</code> Texte: <code>vorname || ' ' || nachname</code>"],
-   tags:['Self JOIN','Hierarchie','Konkatenation']},
+   "In MySQL verbindet <code>CONCAT()</code> Texte: <code>CONCAT(vorname, ' ', nachname)</code>"],
+   tags:['Self JOIN','Hierarchie','CONCAT']},
 
   // ── Level 5: Prüfungsniveau ──
   {id:17,lv:5,xp:120,title:'CASE WHEN: Preiskategorie',tables:['produkte'],
@@ -373,7 +376,122 @@ const T=[
    desc:'Berechne den Gesamtumsatz pro Kunde (alle Positionen: menge × einzelpreis). Zeige <code>vorname</code>, <code>nachname</code>, <code>gesamtumsatz</code> (auf 2 Stellen). Sortiere absteigend.',
    sql:'SELECT k.vorname, k.nachname, ROUND(SUM(bp.menge*bp.einzelpreis),2) AS gesamtumsatz FROM kunden k INNER JOIN bestellungen b ON k.id=b.kunden_id INNER JOIN bestellpositionen bp ON b.id=bp.bestellung_id GROUP BY k.id, k.vorname, k.nachname ORDER BY gesamtumsatz DESC',
    hints:['Du brauchst 3 Tabellen: kunden → bestellungen → bestellpositionen (zwei JOINs).','Umsatz je Position: <code>menge * einzelpreis</code>. Summiert pro Kunde: <code>SUM(bp.menge * bp.einzelpreis)</code>','<code>ROUND(..., 2)</code> rundet auf 2 Dezimalstellen. <code>GROUP BY k.id</code> – ein Eintrag pro Kunde.','Das ist DER Klassiker in AP2: 3-Tabellen-JOIN + SUM + GROUP BY + ROUND + ORDER BY.'],
-   tags:['Multi-JOIN','SUM','GROUP BY','ROUND','AP2-Prüfungsklassiker']}
+   tags:['Multi-JOIN','SUM','GROUP BY','ROUND','AP2-Prüfungsklassiker']},
+
+  // ── Level 1 Bonus ──
+  {id:24,lv:1,xp:30,title:'Eindeutige Städte (DISTINCT)',tables:['kunden'],
+   desc:'Zeige alle Städte, in denen Kunden wohnen – aber jede Stadt nur <strong>einmal</strong>. Sortiere alphabetisch.',
+   sql:'SELECT DISTINCT stadt FROM kunden ORDER BY stadt',
+   hints:['<code>DISTINCT</code> entfernt doppelte Zeilen aus dem Ergebnis.','Es steht direkt nach <code>SELECT</code>: <code>SELECT DISTINCT spalte</code>','<code>ORDER BY stadt</code> sortiert alphabetisch (ASC ist Standard).'],
+   tags:['DISTINCT','ORDER BY']},
+
+  {id:25,lv:1,xp:30,title:'Anzahl aller Kunden',tables:['kunden'],
+   desc:'Zähle wie viele Kunden insgesamt in der Tabelle <code>kunden</code> sind. Spaltenname: <code>anzahl</code>.',
+   sql:'SELECT COUNT(*) AS anzahl FROM kunden',
+   hints:['<code>COUNT(*)</code> zählt alle Zeilen einer Tabelle – auch die mit NULL-Werten.','<code>AS anzahl</code> benennt die Ergebnisspalte um.','Kein GROUP BY nötig – du willst nur eine einzige Zahl.'],
+   tags:['COUNT','AS']},
+
+  {id:26,lv:1,xp:35,title:'Aktive Kunden anzeigen',tables:['kunden'],
+   desc:'Zeige <code>vorname</code>, <code>nachname</code> und <code>email</code> aller <strong>aktiven</strong> Kunden (aktiv = 1).',
+   sql:'SELECT vorname, nachname, email FROM kunden WHERE aktiv = 1',
+   hints:['Die Spalte <code>aktiv</code> enthält 0 (inaktiv) oder 1 (aktiv).','<code>WHERE aktiv = 1</code> filtert nur aktive Kunden.','In MySQL/SQL ist 1 = wahr, 0 = falsch – du könntest auch <code>WHERE aktiv</code> schreiben.'],
+   tags:['WHERE','Boolean-Spalte']},
+
+  // ── Level 2 Bonus ──
+  {id:27,lv:2,xp:50,title:'Produkte mit niedrigem Lagerbestand',tables:['produkte'],
+   desc:'Zeige <code>name</code> und <code>lagerbestand</code> aller Produkte mit weniger als 20 Stück auf Lager. Sortiere aufsteigend nach Lagerbestand.',
+   sql:'SELECT name, lagerbestand FROM produkte WHERE lagerbestand < 20 ORDER BY lagerbestand',
+   hints:['<code><</code> ist der "kleiner als"-Operator.','Für "kleiner oder gleich" nutzt man <code><=</code>.','<code>ORDER BY lagerbestand</code> ohne DESC = aufsteigend (niedrigster Bestand zuerst).'],
+   tags:['WHERE','<','ORDER BY']},
+
+  {id:28,lv:2,xp:50,title:'Kunden NICHT aus Berlin',tables:['kunden'],
+   desc:'Zeige <code>vorname</code>, <code>nachname</code> und <code>stadt</code> aller Kunden, die <strong>nicht</strong> in Berlin wohnen.',
+   sql:"SELECT vorname, nachname, stadt FROM kunden WHERE stadt != 'Berlin'",
+   hints:["In MySQL schreibt man 'ungleich' als <code>!=</code> oder <code><></code> – beide funktionieren.",'<code>WHERE stadt != \'Berlin\'</code> – alle außer Berlin.','Alternativ: <code>WHERE stadt NOT IN (\'Berlin\')</code>'],
+   tags:['!=','NOT IN','Negation']},
+
+  {id:29,lv:2,xp:55,title:'Bestellungen aus 2024',tables:['bestellungen'],
+   desc:'Zeige alle Bestellungen (<code>id</code>, <code>bestelldatum</code>, <code>status</code>) die im Jahr 2024 aufgegeben wurden. Nutze <code>LIKE</code>.',
+   sql:"SELECT id, bestelldatum, status FROM bestellungen WHERE bestelldatum LIKE '2024%'",
+   hints:["Das Datum ist als Text gespeichert im Format YYYY-MM-DD.",'<code>LIKE \'2024%\'</code> findet alle Werte, die mit "2024" beginnen.','In echtem MySQL würde man <code>YEAR(bestelldatum) = 2024</code> nutzen – hier reicht LIKE.'],
+   tags:['LIKE','Datum','Textformat']},
+
+  {id:30,lv:2,xp:60,title:'Produkte mehrerer Lieferanten',tables:['produkte'],
+   desc:'Zeige <code>name</code>, <code>preis</code> und <code>lieferant</code> aller Produkte von <strong>InputDevices AG</strong> oder <strong>FurniOffice</strong>. Sortiere nach Lieferant.',
+   sql:"SELECT name, preis, lieferant FROM produkte WHERE lieferant IN ('InputDevices AG','FurniOffice') ORDER BY lieferant",
+   hints:['<code>IN (\'Wert1\',\'Wert2\')</code> ist kürzer als zwei OR-Bedingungen.','Beide Lieferantennamen müssen exakt (Groß-/Kleinschreibung!) stimmen.','<code>ORDER BY lieferant</code> gruppiert die Ergebnisse optisch nach Lieferant.'],
+   tags:['IN','ORDER BY','Lieferant']},
+
+  // ── Level 3 Bonus ──
+  {id:31,lv:3,xp:70,title:'Günstigstes & teuerstes Produkt',tables:['produkte'],
+   desc:'Zeige den günstigsten Preis als <code>min_preis</code> und den teuersten als <code>max_preis</code> aus der Tabelle <code>produkte</code>.',
+   sql:'SELECT MIN(preis) AS min_preis, MAX(preis) AS max_preis FROM produkte',
+   hints:['<code>MIN()</code> und <code>MAX()</code> sind Aggregatfunktionen wie <code>SUM()</code>.','Du kannst beide in einer einzigen SELECT-Zeile kombinieren.','Kein GROUP BY nötig – du willst das Minimum und Maximum über alle Produkte.'],
+   tags:['MIN','MAX','Aggregat']},
+
+  {id:32,lv:3,xp:75,title:'Gesamtgehalt pro Abteilung',tables:['mitarbeiter'],
+   desc:'Berechne das Gesamtgehalt pro Abteilung. Spalten: <code>abteilung</code>, <code>gesamtgehalt</code>. Sortiere absteigend.',
+   sql:'SELECT abteilung, SUM(gehalt) AS gesamtgehalt FROM mitarbeiter GROUP BY abteilung ORDER BY gesamtgehalt DESC',
+   hints:['<code>SUM(gehalt)</code> addiert alle Gehälter in einer Gruppe.','<code>GROUP BY abteilung</code> – ein Ergebnis pro Abteilung.','<code>ORDER BY gesamtgehalt DESC</code> – teuerste Abteilung zuerst.'],
+   tags:['SUM','GROUP BY','ORDER BY']},
+
+  {id:33,lv:3,xp:75,title:'Anzahl Produkte pro Kategorie',tables:['produkte','kategorien'],
+   desc:'Zeige wie viele Produkte in jeder Kategorie sind. Spalten: Kategoriename (<code>kategorie</code>) und <code>anzahl</code>. Sortiere absteigend.',
+   sql:'SELECT k.name AS kategorie, COUNT(p.id) AS anzahl FROM kategorien k LEFT JOIN produkte p ON k.id = p.kategorie_id GROUP BY k.id, k.name ORDER BY anzahl DESC',
+   hints:['Hier brauchst du einen JOIN zwischen kategorien und produkte.','<code>LEFT JOIN</code> statt INNER JOIN – so erscheinen auch Kategorien ohne Produkte.','<code>COUNT(p.id)</code> zählt nur echte Produkte (NULL wird nicht gezählt).'],
+   tags:['COUNT','JOIN','GROUP BY']},
+
+  {id:34,lv:3,xp:80,title:'Produkte pro Lieferant (GROUP_CONCAT)',tables:['produkte'],
+   desc:'Zeige pro Lieferant eine Liste aller Produktnamen als kommagetrennte Liste. Spalten: <code>lieferant</code>, <code>produkte</code>. Sortiere nach Lieferant.',
+   sql:"SELECT lieferant, GROUP_CONCAT(name, ', ') AS produkte FROM produkte GROUP BY lieferant ORDER BY lieferant",
+   hints:['<code>GROUP_CONCAT(spalte, Trennzeichen)</code> fasst Textwerte einer Gruppe zusammen.','In dieser Übungsumgebung: <code>GROUP_CONCAT(name, \', \')</code>','In echtem MySQL lautet die Syntax: <code>GROUP_CONCAT(name ORDER BY name SEPARATOR \', \')</code>','<code>GROUP BY lieferant</code> – ein Ergebnis pro Lieferant.'],
+   tags:['GROUP_CONCAT','MySQL-Funktion','GROUP BY']},
+
+  // ── Level 4 Bonus ──
+  {id:35,lv:4,xp:90,title:'Produkte mit Kategoriename',tables:['produkte','kategorien'],
+   desc:'Zeige <code>name</code>, <code>preis</code> und den Kategorienamen (<code>kategorie</code>) für alle Produkte. Sortiere nach Kategorie, dann nach Preis.',
+   sql:'SELECT p.name, p.preis, k.name AS kategorie FROM produkte p INNER JOIN kategorien k ON p.kategorie_id = k.id ORDER BY k.name, p.preis',
+   hints:['<code>INNER JOIN kategorien k ON p.kategorie_id = k.id</code> verbindet die Tabellen.','Beide Tabellen haben eine Spalte <code>name</code> – nutze Aliases: <code>p.name</code> und <code>k.name AS kategorie</code>.','<code>ORDER BY k.name, p.preis</code> – erst nach Kategorie, dann innerhalb der Kategorie nach Preis.'],
+   tags:['INNER JOIN','Alias','ORDER BY mehrere Spalten']},
+
+  {id:36,lv:4,xp:95,title:'Kunden mit letztem Bestelldatum',tables:['kunden','bestellungen'],
+   desc:'Zeige für alle Kunden: <code>vorname</code>, <code>nachname</code> und ihr letztes Bestelldatum (<code>letzte_bestellung</code>). Auch Kunden ohne Bestellung sollen erscheinen (dann NULL).',
+   sql:'SELECT k.vorname, k.nachname, MAX(b.bestelldatum) AS letzte_bestellung FROM kunden k LEFT JOIN bestellungen b ON k.id = b.kunden_id GROUP BY k.id, k.vorname, k.nachname',
+   hints:['<code>LEFT JOIN</code> – alle Kunden, auch ohne Bestellung.','<code>MAX(b.bestelldatum)</code> liefert das neueste Datum (alphabetisch größter Wert bei YYYY-MM-DD Format).','<code>GROUP BY k.id</code> – ein Ergebnis pro Kunde.','Kunden ohne Bestellung haben <code>NULL</code> als letzte_bestellung.'],
+   tags:['LEFT JOIN','MAX','GROUP BY','NULL']},
+
+  {id:37,lv:4,xp:100,title:'UNION: Kunden und Mitarbeiter',tables:['kunden','mitarbeiter'],
+   desc:'Erstelle eine kombinierte Liste mit allen Vor- und Nachnamen aus <code>kunden</code> UND <code>mitarbeiter</code>. Spalten: <code>vorname</code>, <code>nachname</code>, <code>typ</code> (entweder "Kunde" oder "Mitarbeiter"). Sortiere nach Nachname.',
+   sql:"SELECT vorname, nachname, 'Kunde' AS typ FROM kunden UNION ALL SELECT vorname, nachname, 'Mitarbeiter' AS typ FROM mitarbeiter ORDER BY nachname",
+   hints:['<code>UNION</code> kombiniert die Ergebnisse zweier SELECT-Abfragen.','Beide SELECTs müssen gleich viele Spalten haben und kompatible Typen.','<code>UNION ALL</code> behält Duplikate – <code>UNION</code> (ohne ALL) entfernt sie.','Du kannst eine Konstante als Spalte einfügen: <code>\'Kunde\' AS typ</code>'],
+   tags:['UNION','UNION ALL','Konstante als Spalte']},
+
+  // ── Level 5 Bonus ──
+  {id:38,lv:5,xp:120,title:'NOT EXISTS: Kunden ohne Bestellung',tables:['kunden','bestellungen'],
+   desc:'Finde alle Kunden, die noch nie bestellt haben – diesmal mit <code>NOT EXISTS</code>. Zeige <code>vorname</code>, <code>nachname</code>.',
+   sql:'SELECT vorname, nachname FROM kunden k WHERE NOT EXISTS (SELECT 1 FROM bestellungen b WHERE b.kunden_id = k.id)',
+   hints:['<code>NOT EXISTS</code> prüft ob eine Unterabfrage <strong>keine</strong> Ergebnisse liefert.','Die Unterabfrage ist "korreliert" – sie referenziert die äußere Tabelle (<code>k.id</code>).','<code>SELECT 1</code> in der Unterabfrage reicht – der Wert selbst ist egal, nur ob Zeilen existieren.','Vergleiche das Ergebnis mit Aufgabe 14 (LEFT JOIN + IS NULL) – beide Wege führen zum Ziel.'],
+   tags:['NOT EXISTS','Korrelierte Unterabfrage','Subquery']},
+
+  {id:39,lv:5,xp:130,title:'INSERT: Neuen Kunden anlegen',tables:['kunden'],
+   desc:"Füge einen neuen Kunden ein: vorname='Max', nachname='Mustermann', email='max@test.de', stadt='Frankfurt', plz='60311', aktiv=1. Prüfe: <code>SELECT id, vorname, nachname, stadt FROM kunden WHERE nachname = 'Mustermann'</code>",
+   isDML:true,
+   verifySQL:"SELECT vorname, nachname, stadt FROM kunden WHERE nachname = 'Mustermann'",
+   expectedVerify:[['Max','Mustermann','Frankfurt']],
+   hints:["<code>INSERT INTO tabelle (spalte1, spalte2) VALUES (wert1, wert2)</code>","Du musst nicht alle Spalten angeben – id (AUTOINCREMENT) und land (DEFAULT) werden automatisch gesetzt.","Textwerte in einfache Anführungszeichen: <code>'Max'</code>"],
+   tags:['INSERT INTO','DML','VALUES']},
+
+  {id:40,lv:5,xp:140,title:'Mitarbeiter über Firmendurchschnitt',tables:['mitarbeiter'],
+   desc:'Zeige <code>vorname</code>, <code>nachname</code>, <code>abteilung</code> und <code>gehalt</code> aller Mitarbeiter, die mehr verdienen als der Firmendurchschnitt. Sortiere nach Gehalt absteigend.',
+   sql:'SELECT vorname, nachname, abteilung, gehalt FROM mitarbeiter WHERE gehalt > (SELECT AVG(gehalt) FROM mitarbeiter) ORDER BY gehalt DESC',
+   hints:['Eine Subquery in WHERE liefert den Firmendurchschnitt: <code>(SELECT AVG(gehalt) FROM mitarbeiter)</code>','Die äußere Abfrage vergleicht jeden Mitarbeiter mit diesem Wert.','<code>ORDER BY gehalt DESC</code> – Höchstverdiener zuerst.'],
+   tags:['Subquery','AVG','WHERE']},
+
+  {id:41,lv:5,xp:150,title:'Bestellwert-Kategorien mit CASE',tables:['bestellungen','bestellpositionen'],
+   desc:'Berechne pro Bestellung den Gesamtwert und kategorisiere: unter 100€ = "Klein", 100–500€ = "Mittel", über 500€ = "Groß". Spalten: <code>bestellung_id</code>, <code>gesamtwert</code>, <code>kategorie</code>.',
+   sql:"SELECT bestellung_id, ROUND(SUM(menge*einzelpreis),2) AS gesamtwert, CASE WHEN SUM(menge*einzelpreis) < 100 THEN 'Klein' WHEN SUM(menge*einzelpreis) <= 500 THEN 'Mittel' ELSE 'Groß' END AS kategorie FROM bestellpositionen GROUP BY bestellung_id ORDER BY gesamtwert DESC",
+   hints:['Erst <code>GROUP BY bestellung_id</code> + <code>SUM()</code> um den Gesamtwert zu berechnen.','Dann <code>CASE WHEN</code> direkt auf den aggregierten Wert anwenden.','Du kannst <code>CASE WHEN SUM(...)</code> in der SELECT-Liste verwenden.','Reihenfolge der CASE-Bedingungen ist wichtig: zuerst < 100, dann <= 500, dann ELSE.'],
+   tags:['CASE WHEN','GROUP BY','SUM','Kombination']}
 ];
 
 // ── Game State ────────────────────────────────────────────────
@@ -388,6 +506,11 @@ function freshDb(){
   const db=new S.SQL.Database();
   db.run(SCHEMA_SQL);
   db.run(DATA_SQL);
+  // MySQL-Kompatibilität: CONCAT() als User-Defined Function
+  db.create_function('CONCAT', function() {
+    return Array.from(arguments).map(v=>v===null?'':String(v)).join('');
+  });
+  // MySQL: IFNULL ist in SQLite bereits vorhanden; GROUP_CONCAT ebenfalls
   return db;
 }
 function runQ(sql){
@@ -522,7 +645,9 @@ function renderTask(){
   <div class="actions">
     <button class="btn-run" onclick="runQ2()">▶ Ausführen</button>
     <button class="btn-hint" id="hint-btn" ${hc>=t.hints.length?'disabled':''} onclick="showHint()">💡 Hinweis${hc<t.hints.length?' ('+(t.hints.length-hc)+' übrig)':' (alle gezeigt)'}</button>
+    <button class="btn-sol" onclick="showSolution()">👁 Lösung</button>
     <span class="hint-left">${prevBtn} ${nextBtn}</span>
+    <span class="mysql-badge">MySQL-Syntax</span>
   </div>
   <div class="hints-area" id="hints-area">${hintItems}</div>
   <div class="result-area" id="result-area"><div class="r-empty">Ergebnis erscheint hier · Strg+Enter zum Ausführen</div></div>`;
@@ -576,6 +701,25 @@ function switchP(name){
 function goTo(idx){
   if(idx<0||idx>=T.length)return;
   S.cur=idx;render();
+}
+
+function showSolution(){
+  const t=T[S.cur];
+  let sol='';
+  if(t.isDML){
+    const dmlMap={
+      21:"UPDATE produkte SET lagerbestand = lagerbestand - 10 WHERE id = 3",
+      22:"DELETE FROM bestellungen WHERE status = 'storniert'",
+      39:"INSERT INTO kunden (vorname, nachname, email, stadt, plz, aktiv) VALUES ('Max', 'Mustermann', 'max@test.de', 'Frankfurt', '60311', 1)"
+    };
+    sol=dmlMap[t.id]||'-- keine Musterlösung verfügbar';
+  }else{
+    sol=t.sql||'';
+  }
+  const ta=document.getElementById('sql-input');
+  if(ta){ta.value=sol;}
+  const ra=document.getElementById('result-area');
+  if(ra){ra.innerHTML='<div class="r-wrong">⚠ Lösung eingeblendet – versuche sie zu verstehen, bevor du sie ausführst!</div>';}
 }
 
 function showHint(){
