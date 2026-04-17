@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Projects Hub</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111827;
+      color: #f9fafb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+      padding: 32px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2.1rem, 2.5vw, 3rem);
+    }
+    p.intro {
+      margin-top: 0;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+    .top-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    #logoutBtn {
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    #logoutBtn:hover {
+      background: #1d4ed8;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-top: 28px;
+    }
+    .card {
+      background: #1f2937;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 18px;
+      padding: 20px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #60a5fa;
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+    }
+    .card p {
+      margin: 0 0 16px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .card a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+    .card a:hover {
+      background: #1d4ed8;
+    }
+    .footer {
+      margin-top: 30px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div class="top-bar">
+        <div>
+          <h1>Test Projects Hub</h1>
+          <p class="intro">Hier findest du alle wichtigen Komponenten des Ordners <strong>Test_projects</strong>. Klicke auf die Karte, um das gewünschte Tool oder die Datei zu öffnen.</p>
+        </div>
+        <div class="auth-bar">
+          <span id="userStatus">Lade Auth...</span>
+          <button id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </header>
+    <section class="grid">
+      <article class="card">
+        <h2>Pseudocode Trainer</h2>
+        <p>Öffnet das Pseudocode-Trainingsmodul. Dieses Projekt ist direkt als statische Seite verfügbar.</p>
+        <a href="pseudocode-trainer/index.html">Öffnen</a>
+      </article>
+      <article class="card">
+        <h2>SQL GameLearner</h2>
+        <p>Die Hauptseite des SQL-Quest-Trainings. Ideal zum Starten der SQL-Übungen.</p>
+        <a href="SQL%20gameLearner/sql-quest.html">Öffnen</a>
+      </article>
+      <article class="card">
+        <h2>UML Trainer</h2>
+        <p>Das UML-Training zur Visualisierung und zum Lernen von UML-Diagrammen.</p>
+        <a href="uml-trainer/index.html">Öffnen</a>
+      </article>
+      <article class="card">
+        <h2>UML Lernwerkzeug</h2>
+        <p>Öffnet die separate UML-Lernwerkzeugseite.</p>
+        <a href="uml-trainer/uml-lernwerkzeug.html">Öffnen</a>
+      </article>
+      <article class="card">
+        <h2>SQL-Quellen</h2>
+        <p>Zeigt zusätzliche SQL-Komponenten als Quellcode-Dateien an.</p>
+        <a href="SQL%20gameLearner/sql-cheatsheet-de.jsx">SQL Cheatsheet</a>
+      </article>
+      <article class="card">
+        <h2>SQL Notebook</h2>
+        <p>Zeigt die SQL Joins Visual-Datei. Das ist eher eine Quellcode-Präsentation als eine interaktive Seite.</p>
+        <a href="SQL%20gameLearner/sql-joins-visual.jsx">SQL Joins Visual</a>
+      </article>
+    </section>
+    <div class="footer">
+      <span>Wenn du neue Komponenten hinzufügst, erweitere dieses Dashboard einfach um weitere Links.</span>
+      <a href="README.md">README anzeigen</a>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const session = await auth.protectPage();
+        const status = document.getElementById('userStatus');
+        if (session?.user?.email) {
+          status.textContent = `Angemeldet als ${session.user.email}`;
+        } else {
+          status.textContent = 'Nicht angemeldet';
+        }
+      } catch (error) {
+        document.getElementById('userStatus').textContent = 'Auth-Fehler';
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+      } catch (error) {
+        alert('Logout fehlgeschlagen: ' + (error.message || error));
+      }
+    });
+  </script>
+</body>
+</html>

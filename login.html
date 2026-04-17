@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Test Projects Hub</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #111827 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(520px, 100%);
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 24px;
+      box-shadow: 0 32px 80px rgba(15, 23, 42, 0.35);
+      padding: 32px;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: clamp(2rem, 2.5vw, 2.6rem);
+    }
+    p {
+      margin: 0 0 24px;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+    form {
+      display: grid;
+      gap: 16px;
+    }
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      border-radius: 14px;
+      color: white;
+      background: #2563eb;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .toggle-row button {
+      width: auto;
+      background: transparent;
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      padding: 10px 14px;
+    }
+    .toggle-row button:hover {
+      background: rgba(96, 165, 250, 0.12);
+    }
+    .status {
+      min-height: 24px;
+      color: #f8fafc;
+      font-size: 0.98rem;
+    }
+    .status.error {
+      color: #f87171;
+    }
+    .footer {
+      margin-top: 24px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    .footer a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <section class="card">
+    <h1>Login für Test Projects</h1>
+    <p>Bitte melde dich an, um Zugriff auf das Dashboard zu erhalten.</p>
+    <form id="authForm">
+      <label>
+        E-Mail-Adresse
+        <input type="email" id="email" placeholder="name@example.com" required>
+      </label>
+      <label>
+        Passwort
+        <input type="password" id="password" placeholder="Geheim" required>
+      </label>
+      <button type="submit" id="submitButton">Anmelden</button>
+      <div class="toggle-row">
+        <span id="modeText">Noch keinen Account?</span>
+        <button type="button" id="toggleButton">Registrieren</button>
+      </div>
+      <div class="status" id="statusMessage"></div>
+    </form>
+    <div class="footer">
+      <p>Falls du bereits angemeldet bist, wirst du automatisch weitergeleitet.</p>
+      <p><a href="index.html">Zum Dashboard</a></p>
+    </div>
+  </section>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const form = document.getElementById('authForm');
+    const submitButton = document.getElementById('submitButton');
+    const statusMessage = document.getElementById('statusMessage');
+    const toggleButton = document.getElementById('toggleButton');
+    const modeText = document.getElementById('modeText');
+    let isSignUp = false;
+
+    function setStatus(message, isError = false) {
+      statusMessage.textContent = message;
+      statusMessage.className = isError ? 'status error' : 'status';
+    }
+
+    function updateMode() {
+      if (isSignUp) {
+        submitButton.textContent = 'Registrieren';
+        modeText.textContent = 'Schon einen Account?';
+        toggleButton.textContent = 'Anmelden';
+      } else {
+        submitButton.textContent = 'Anmelden';
+        modeText.textContent = 'Noch keinen Account?';
+        toggleButton.textContent = 'Registrieren';
+      }
+    }
+
+    toggleButton.addEventListener('click', () => {
+      isSignUp = !isSignUp;
+      setStatus('');
+      updateMode();
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setStatus('Bitte warten ...');
+      submitButton.disabled = true;
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      try {
+        const result = isSignUp
+          ? await auth.signUp(email, password)
+          : await auth.signIn(email, password);
+
+        if (result.error) throw result.error;
+
+        if (isSignUp) {
+          setStatus('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.');
+        } else {
+          setStatus('Erfolgreich angemeldet! Du wirst weitergeleitet...');
+          window.location.href = 'index.html';
+        }
+      } catch (error) {
+        setStatus(error.message || 'Fehler beim Login', true);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateMode();
+      await auth.redirectIfAuthenticated();
+    });
+  </script>
+</body>
+</html>
