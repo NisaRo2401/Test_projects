@@ -3,171 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Test Projects Hub</title>
+  <title>Login – Test Projects Hub</title>
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
   <style>
     body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #111827 100%);
-      color: #e2e8f0;
-      min-height: 100vh;
+      background: linear-gradient(135deg, var(--color-bg-deep) 0%, var(--color-bg-surface) 60%, var(--color-bg) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: var(--space-6);
     }
-    .card {
-      width: min(520px, 100%);
-      background: rgba(15, 23, 42, 0.98);
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      border-radius: 24px;
-      box-shadow: 0 32px 80px rgba(15, 23, 42, 0.35);
-      padding: 32px;
+
+    .login-card {
+      width: min(480px, 100%);
     }
-    h1 {
-      margin-top: 0;
-      font-size: clamp(2rem, 2.5vw, 2.6rem);
+
+    .login-card h1 {
+      font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+      margin-bottom: var(--space-2);
     }
-    p {
-      margin: 0 0 24px;
-      color: #cbd5e1;
+
+    .login-card .subtitle {
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-6);
       line-height: 1.7;
     }
-    form {
+
+    .form-group {
       display: grid;
-      gap: 16px;
+      gap: var(--space-4);
     }
-    label {
-      display: grid;
-      gap: 8px;
-      font-size: 0.95rem;
-      color: #94a3b8;
-    }
-    input {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      background: #0f172a;
-      color: #f8fafc;
-      font-size: 1rem;
-    }
-    button {
-      width: 100%;
-      padding: 14px 16px;
-      border: none;
-      border-radius: 14px;
-      color: white;
-      background: #2563eb;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-    button:hover {
-      background: #1d4ed8;
-    }
+
     .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      margin-top: 10px;
+      gap: var(--space-3);
     }
-    .toggle-row button {
-      width: auto;
-      background: transparent;
-      color: #60a5fa;
-      border: 1px solid rgba(96, 165, 250, 0.25);
-      padding: 10px 14px;
+
+    .toggle-row span {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
     }
-    .toggle-row button:hover {
-      background: rgba(96, 165, 250, 0.12);
-    }
-    .status {
-      min-height: 24px;
-      color: #f8fafc;
-      font-size: 0.98rem;
-    }
-    .status.error {
-      color: #f87171;
-    }
-    .footer {
-      margin-top: 24px;
-      color: #94a3b8;
-      font-size: 0.95rem;
-    }
-    .footer a {
-      color: #93c5fd;
-      text-decoration: none;
+
+    .login-footer {
+      margin-top: var(--space-6);
+      padding-top: var(--space-5);
+      border-top: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
-  <section class="card">
-    <h1>Login für Test Projects</h1>
-    <p>Bitte melde dich an, um Zugriff auf das Dashboard zu erhalten.</p>
+  <section class="card login-card">
+    <h1>Anmelden</h1>
+    <p class="subtitle">Bitte melde dich an, um Zugriff auf das Dashboard zu erhalten.</p>
+
     <form id="authForm">
-      <label>
-        E-Mail-Adresse
-        <input type="email" id="email" placeholder="name@example.com" required>
-      </label>
-      <label>
-        Passwort
-        <input type="password" id="password" placeholder="Geheim" required>
-      </label>
-      <button type="submit" id="submitButton">Anmelden</button>
-      <div class="toggle-row">
-        <span id="modeText">Noch keinen Account?</span>
-        <button type="button" id="toggleButton">Registrieren</button>
+      <div class="form-group">
+        <label class="form-field">
+          <span class="form-label">E-Mail-Adresse</span>
+          <input class="form-input" type="email" id="email" placeholder="name@example.com" required>
+        </label>
+        <label class="form-field">
+          <span class="form-label">Passwort</span>
+          <input class="form-input" type="password" id="password" placeholder="••••••••" required>
+        </label>
+
+        <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Anmelden</button>
+
+        <div class="toggle-row">
+          <span id="modeText">Noch keinen Account?</span>
+          <button class="btn btn-ghost" type="button" id="toggleBtn">Registrieren</button>
+        </div>
+
+        <p class="status" id="statusMsg" role="alert"></p>
       </div>
-      <div class="status" id="statusMessage"></div>
     </form>
-    <div class="footer">
-      <p>Falls du bereits angemeldet bist, wirst du automatisch weitergeleitet.</p>
-      <p><a href="index.html">Zum Dashboard</a></p>
+
+    <div class="login-footer">
+      Falls du bereits angemeldet bist, wirst du automatisch weitergeleitet.
     </div>
   </section>
+
+  <script>window.APP_BASE_PATH = '';</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="js/auth.js"></script>
+  <script src="assets/js/auth.js"></script>
   <script>
-    const form = document.getElementById('authForm');
-    const submitButton = document.getElementById('submitButton');
-    const statusMessage = document.getElementById('statusMessage');
-    const toggleButton = document.getElementById('toggleButton');
-    const modeText = document.getElementById('modeText');
+    const form       = document.getElementById('authForm');
+    const submitBtn  = document.getElementById('submitBtn');
+    const statusMsg  = document.getElementById('statusMsg');
+    const toggleBtn  = document.getElementById('toggleBtn');
+    const modeText   = document.getElementById('modeText');
     let isSignUp = false;
 
-    function setStatus(message, isError = false) {
-      statusMessage.textContent = message;
-      statusMessage.className = isError ? 'status error' : 'status';
+    function setStatus(msg, type = '') {
+      statusMsg.textContent = msg;
+      statusMsg.className = 'status ' + type;
     }
 
-    function updateMode() {
-      if (isSignUp) {
-        submitButton.textContent = 'Registrieren';
-        modeText.textContent = 'Schon einen Account?';
-        toggleButton.textContent = 'Anmelden';
-      } else {
-        submitButton.textContent = 'Anmelden';
-        modeText.textContent = 'Noch keinen Account?';
-        toggleButton.textContent = 'Registrieren';
-      }
+    function applyMode() {
+      submitBtn.textContent = isSignUp ? 'Registrieren' : 'Anmelden';
+      modeText.textContent  = isSignUp ? 'Schon einen Account?' : 'Noch keinen Account?';
+      toggleBtn.textContent = isSignUp ? 'Anmelden' : 'Registrieren';
+      document.querySelector('h1').textContent = isSignUp ? 'Registrieren' : 'Anmelden';
     }
 
-    toggleButton.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', () => {
       isSignUp = !isSignUp;
       setStatus('');
-      updateMode();
+      applyMode();
     });
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      setStatus('Bitte warten ...');
-      submitButton.disabled = true;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setStatus('Bitte warten …');
+      submitBtn.disabled = true;
 
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
 
       try {
         const result = isSignUp
@@ -177,20 +134,20 @@
         if (result.error) throw result.error;
 
         if (isSignUp) {
-          setStatus('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.');
+          setStatus('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.', 'success');
         } else {
-          setStatus('Erfolgreich angemeldet! Du wirst weitergeleitet...');
+          setStatus('Erfolgreich angemeldet! Du wirst weitergeleitet …', 'success');
           window.location.href = 'index.html';
         }
-      } catch (error) {
-        setStatus(error.message || 'Fehler beim Login', true);
+      } catch (err) {
+        setStatus(err.message || 'Fehler beim Login', 'error');
       } finally {
-        submitButton.disabled = false;
+        submitBtn.disabled = false;
       }
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
-      updateMode();
+      applyMode();
       await auth.redirectIfAuthenticated();
     });
   </script>

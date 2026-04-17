@@ -10,14 +10,12 @@ function getClient() {
   return _client;
 }
 
-// Computes a path relative to the Test_projects root from the current page location.
+// Each page sets window.APP_BASE_PATH before loading this script.
+// Root pages (index.html, login.html) use '' — module pages use '../..'.
 function _rootPath(filename) {
-  const parts = window.location.pathname.replace(/\\/g, '/').split('/').filter(Boolean);
-  const testIdx = parts.indexOf('Test_projects');
-  if (testIdx === -1) return filename;
-  const depth = parts.length - testIdx - 2;
-  if (depth <= 0) return filename;
-  return '../'.repeat(depth) + filename;
+  const base = window.APP_BASE_PATH;
+  if (!base) return filename;
+  return base + '/' + filename;
 }
 
 async function signIn(email, password) {
@@ -45,7 +43,7 @@ async function getSession() {
   return data.session;
 }
 
-// Call on every protected page. Redirects to login if no session.
+// Call on every protected page. Redirects to login if no active session.
 async function protectPage() {
   const session = await getSession();
   if (!session) {
