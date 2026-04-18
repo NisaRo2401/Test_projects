@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IHK Exam Trainer</title>
+  <link rel="stylesheet" href="../../assets/css/variables.css">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="iet-shell">
+    <header class="iet-header">
+      <h1>IHK Exam Trainer</h1>
+      <p class="iet-subtitle">Fachinformatiker Anwendungsentwicklung · Themen-Training &amp; Prüfungssimulation</p>
+    </header>
+
+    <!-- Haupt-Viewport: View-Wechsel erfolgt via [data-view] Attribut auf #iet-app -->
+    <section id="iet-app" data-view="loading" aria-live="polite">
+
+      <!-- ── Loading ────────────────────────────── -->
+      <div class="iet-view" data-view-name="loading">
+        <p class="iet-loader">Lade Fragen aus Supabase…</p>
+      </div>
+
+      <!-- ── Leerzustand: noch keine Fragen importiert ── -->
+      <div class="iet-view" data-view-name="empty">
+        <div class="card iet-empty">
+          <h2>Noch keine Fragen in der Datenbank</h2>
+          <p>Starte den PDF-Import (siehe <code>Test_projects/tools/README.md</code>) und komm dann zurück.</p>
+          <pre><code>cd Test_projects/tools
+npm install
+node import-pdf.mjs --pdf ./input-pdfs/PRUEFUNG.pdf --part GA1 --year 2023 --season Sommer</code></pre>
+          <button class="btn btn-ghost" data-action="reload">Neu laden</button>
+        </div>
+      </div>
+
+      <!-- ── Home ──────────────────────────────── -->
+      <div class="iet-view" data-view-name="home">
+        <div class="iet-overall card">
+          <div class="iet-overall-head">
+            <h2>Gesamtfortschritt</h2>
+            <span class="badge iet-badge-accent" id="ietOverallPct">0%</span>
+          </div>
+          <div class="iet-progress">
+            <div class="iet-progress-fill" id="ietOverallBar"></div>
+          </div>
+          <p class="iet-overall-note" id="ietOverallNote">0 / 0 Fragen beantwortet</p>
+        </div>
+
+        <div class="iet-cards">
+          <article class="iet-card-action" data-action="go-topics">
+            <span class="module-tag">Üben</span>
+            <h3>Themen-Training</h3>
+            <p>Fragen gruppiert nach Thema mit Fortschrittsbalken, Hinweisen und Musterlösung.</p>
+            <span class="iet-arrow">→</span>
+          </article>
+          <article class="iet-card-action" data-action="go-sim-setup">
+            <span class="module-tag">Simulation</span>
+            <h3>Prüfungssimulation</h3>
+            <p>Echter Timer, zufällige Fragen, am Ende Punkte + IHK-Note.</p>
+            <span class="iet-arrow">→</span>
+          </article>
+          <article class="iet-card-action" data-action="go-history">
+            <span class="module-tag">Verlauf</span>
+            <h3>Prüfungsverlauf</h3>
+            <p>Deine letzten Simulations-Ergebnisse im Überblick.</p>
+            <span class="iet-arrow">→</span>
+          </article>
+        </div>
+      </div>
+
+      <!-- ── Themen-Liste ──────────────────────── -->
+      <div class="iet-view" data-view-name="topics">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="go-home">← Zurück</button>
+          <div class="iet-filters" role="tablist" aria-label="Prüfungsteil-Filter">
+            <button class="iet-filter is-active" data-part="ALL">Alle</button>
+            <button class="iet-filter" data-part="AP1">AP1</button>
+            <button class="iet-filter" data-part="GA1">GA1</button>
+            <button class="iet-filter" data-part="GA2">GA2</button>
+            <button class="iet-filter" data-part="WiSo">WiSo</button>
+          </div>
+        </div>
+        <div id="ietTopicList" class="iet-topic-list"></div>
+      </div>
+
+      <!-- ── Frage-Ansicht (Themen-Training) ────── -->
+      <div class="iet-view" data-view-name="question">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="go-topics">← Themen</button>
+          <div class="iet-q-meta" id="ietQMeta"></div>
+        </div>
+
+        <div class="card iet-q-card">
+          <div id="ietQDiagram" class="iet-q-diagram" hidden></div>
+          <h2 class="iet-q-text" id="ietQText"></h2>
+          <form id="ietQForm" class="iet-q-options" autocomplete="off"></form>
+
+          <div class="iet-q-actions">
+            <button class="btn btn-ghost" data-action="show-hint" id="ietHintBtn">Hinweis</button>
+            <button class="btn btn-primary" data-action="check-answer" id="ietCheckBtn">Antwort prüfen</button>
+            <button class="btn btn-ghost" data-action="next-question" id="ietNextBtn" hidden>Nächste →</button>
+          </div>
+
+          <div id="ietHintBox" class="iet-hint" hidden></div>
+          <div id="ietFeedback" class="iet-feedback" hidden></div>
+          <div id="ietSolution" class="iet-solution" hidden>
+            <button class="btn btn-ghost iet-solution-toggle" data-action="toggle-solution">Musterlösung anzeigen ▾</button>
+            <div class="iet-solution-body" hidden></div>
+          </div>
+        </div>
+
+        <div class="iet-progress iet-progress-sm">
+          <div class="iet-progress-fill" id="ietTopicBar"></div>
+        </div>
+        <p class="iet-progress-note" id="ietTopicNote"></p>
+      </div>
+
+      <!-- ── Simulations-Setup ──────────────────── -->
+      <div class="iet-view" data-view-name="sim-setup">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="go-home">← Zurück</button>
+        </div>
+        <div class="card">
+          <h2>Prüfungssimulation starten</h2>
+          <p class="iet-muted">Wähle einen Prüfungsteil. Der Timer startet sofort nach dem Klick.</p>
+          <div class="iet-sim-parts" id="ietSimParts"></div>
+        </div>
+      </div>
+
+      <!-- ── Simulation (läuft) ─────────────────── -->
+      <div class="iet-view" data-view-name="sim">
+        <div class="iet-sim-bar">
+          <span class="iet-sim-part" id="ietSimPart"></span>
+          <span class="iet-sim-timer" id="ietSimTimer">--:--</span>
+          <span class="iet-sim-counter" id="ietSimCounter"></span>
+          <button class="btn btn-primary" data-action="submit-sim">Abgeben</button>
+        </div>
+
+        <div class="card iet-q-card">
+          <h2 class="iet-q-text" id="ietSimQText"></h2>
+          <div id="ietSimDiagram" class="iet-q-diagram" hidden></div>
+          <form id="ietSimForm" class="iet-q-options" autocomplete="off"></form>
+          <div class="iet-sim-nav">
+            <button class="btn btn-ghost" data-action="sim-prev">← Vorherige</button>
+            <button class="btn btn-ghost" data-action="sim-mark" id="ietSimMarkBtn">Markieren</button>
+            <button class="btn btn-ghost" data-action="sim-next">Nächste →</button>
+          </div>
+        </div>
+
+        <nav class="iet-sim-pager" id="ietSimPager" aria-label="Fragen-Navigation"></nav>
+      </div>
+
+      <!-- ── Ergebnis ──────────────────────────── -->
+      <div class="iet-view" data-view-name="result">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="go-home">← Zurück</button>
+        </div>
+        <div class="card iet-result">
+          <div class="iet-result-head">
+            <div>
+              <h2 id="ietResultTitle">Ergebnis</h2>
+              <p class="iet-muted" id="ietResultSub"></p>
+            </div>
+            <div class="iet-result-grade">
+              <span class="iet-grade-num" id="ietResultGrade">—</span>
+              <span class="iet-grade-label">IHK-Note</span>
+            </div>
+          </div>
+          <div class="iet-result-score">
+            <div class="iet-progress iet-progress-lg">
+              <div class="iet-progress-fill" id="ietResultBar"></div>
+            </div>
+            <p class="iet-result-pct" id="ietResultPct"></p>
+          </div>
+          <div id="ietResultByTopic" class="iet-result-breakdown"></div>
+          <div class="iet-result-actions">
+            <button class="btn btn-ghost" data-action="review-wrong">Falsch beantwortete ansehen</button>
+            <button class="btn btn-primary" data-action="go-home">Zum Dashboard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Review (falsche Antworten) ─────────── -->
+      <div class="iet-view" data-view-name="review">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="back-to-result">← Ergebnis</button>
+        </div>
+        <div id="ietReviewList" class="iet-review-list"></div>
+      </div>
+
+      <!-- ── Verlauf ──────────────────────────── -->
+      <div class="iet-view" data-view-name="history">
+        <div class="iet-toolbar">
+          <button class="btn btn-ghost" data-action="go-home">← Zurück</button>
+        </div>
+        <div id="ietHistoryList" class="iet-history-list"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>window.APP_BASE_PATH = '../..';</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../assets/js/protect.js" defer></script>
+  <script src="../../assets/js/nav.js" defer></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

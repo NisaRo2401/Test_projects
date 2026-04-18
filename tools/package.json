@@ -1,0 +1,18 @@
+{
+  "name": "ihk-exam-import",
+  "version": "1.0.0",
+  "description": "PDF-Extraktion + Supabase-Import für IHK-Exam-Trainer (ohne API-Kosten)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "extract": "node extract-pdf.mjs",
+    "insert": "node insert-questions.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.99",
+    "@supabase/supabase-js": "^2.42.3",
+    "dotenv": "^16.4.5",
+    "pdfjs-dist": "^4.0.379",
+    "tesseract.js": "^7.0.0"
+  }
+}
