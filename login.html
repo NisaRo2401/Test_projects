@@ -161,7 +161,11 @@
     document.addEventListener('DOMContentLoaded', async () => {
       applyMode();
       try {
+        const confirmedEmail = auth.isEmailConfirmationCallback();
         await auth.redirectIfAuthenticated();
+        if (confirmedEmail) {
+          setStatus('E-Mail-Adresse bestätigt. Bitte melde dich jetzt an.', 'success');
+        }
       } catch (error) {
         setStatus('Der Anmeldedienst ist momentan nicht erreichbar.', 'error');
       }

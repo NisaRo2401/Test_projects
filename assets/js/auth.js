@@ -69,6 +69,16 @@ function getPostLoginUrl() {
   return fallback.href;
 }
 
+function isEmailConfirmationCallback() {
+  const url = new URL(window.location.href);
+  const type = url.searchParams.get('type');
+  if (type === 'signup' || type === 'email') return true;
+
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const hashType = hashParams.get('type');
+  return hashType === 'signup' || hashType === 'email';
+}
+
 async function signIn(email, password) {
   const result = await getClient().auth.signInWithPassword({ email, password });
   if (!result.error && result.data?.user) {
@@ -84,7 +94,14 @@ async function signIn(email, password) {
 }
 
 async function signUp(email, password) {
-  return getClient().auth.signUp({ email, password });
+  const emailRedirectUrl = new URL(_rootPath('login.html'), window.location.href);
+  return getClient().auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: emailRedirectUrl.href,
+    },
+  });
 }
 
 async function signOut() {
@@ -116,6 +133,18 @@ async function protectPage() {
 async function redirectIfAuthenticated() {
   const session = await getSession();
   if (session) {
+    if (isEmailConfirmationCallback()) {
+      await getClient().auth.signOut();
+      if (window.history?.replaceState) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
+        cleanUrl.searchParams.delete('code');
+        cleanUrl.searchParams.delete('type');
+        cleanUrl.searchParams.delete('token_hash');
+        window.history.replaceState({}, '', cleanUrl.href);
+      }
+      return null;
+    }
     window.location.replace(getPostLoginUrl());
     return session;
   }
@@ -129,6 +158,7 @@ window.auth = {
   signOut,
   getSession,
   getPostLoginUrl,
+  isEmailConfirmationCallback,
   protectPage,
   redirectIfAuthenticated,
 };
