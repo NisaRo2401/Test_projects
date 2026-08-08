@@ -13,10 +13,12 @@ function loadAuth({
 } = {}) {
   const url = new URL(href);
   const redirects = [];
+  const signUpCalls = [];
   const authClient = {
     auth: {
       async getSession() { return { data: { session }, error: null }; },
       async signOut() { return { error: null }; },
+      async signUp(values) { signUpCalls.push(values); return { data: {}, error: null }; },
     },
   };
   const window = {
@@ -42,8 +44,18 @@ function loadAuth({
   };
   const context = vm.createContext({ console, URL, URLSearchParams, window });
   new vm.Script(authSource, { filename: 'assets/js/auth.js' }).runInContext(context);
-  return { auth: window.auth, redirects };
+  return { auth: window.auth, redirects, signUpCalls };
 }
+
+test('Registrierungsbestätigung verwendet die aktuelle Anwendungs-URL', async () => {
+  const { auth, signUpCalls } = loadAuth({
+    href: 'https://projects.noxsolutions.de/login.html',
+  });
+
+  await auth.signUp('user@example.com', 'password123');
+
+  assert.equal(signUpCalls[0].options.emailRedirectTo, 'https://projects.noxsolutions.de/login.html');
+});
 
 test('akzeptiert nur interne Rücksprungziele nach dem Login', () => {
   const safe = loadAuth({
