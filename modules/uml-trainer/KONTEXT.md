@@ -1,7 +1,7 @@
 # UML Lernwerkzeug – Codedokumentation
 
-Standalone HTML-Datei (kein Build-Prozess, keine Dependencies) für die IHK FIAE Prüfungsvorbereitung.
-Im Browser öffnen oder per Live Server in VS Code starten.
+Standalone HTML-Datei ohne Build-Prozess für die IHK-FIAE-Prüfungsvorbereitung.
+Sie wird wie die anderen geschützten Module über einen Webserver ausgeliefert und nutzt die zentrale Supabase-/Auth-Konfiguration aus `assets/js/`.
 
 ---
 
@@ -94,6 +94,9 @@ let S = {
 | `bth()` | Baut das Theorie-Panel auf |
 | `commitEdit()` | Speichert die Inline-Texteingabe |
 | `nid()` | Erzeugt eine neue eindeutige Element-ID |
+| `esc()` | Maskiert nutzerdefinierte Texte vor dem SVG-Rendering |
+| `addElement()` | Fügt Palettelemente per Drag-and-Drop, Klick oder Tastatur hinzu |
+| `clampElement()` | Hält Elemente innerhalb der sichtbaren Zeichenfläche |
 
 ---
 

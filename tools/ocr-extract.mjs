@@ -15,6 +15,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { dirname, join, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createWorker } from 'tesseract.js';
+import { ocrPages } from './lib/ocr-runner.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -43,7 +44,10 @@ Optional:
   process.exit(values.help ? 0 : 1);
 }
 
-const WORKERS = Math.max(1, Number(values.workers) || 1);
+const requestedWorkers = Number(values.workers);
+const WORKERS = Number.isFinite(requestedWorkers)
+  ? Math.min(16, Math.max(1, Math.trunc(requestedWorkers)))
+  : 1;
 const LANG = values.lang;
 const DIAGRAM_TEXT_THRESHOLD = 150; // Seiten mit < 150 Zeichen OCR-Text gelten als Diagramm/Skizze
 
@@ -53,56 +57,6 @@ async function listExtractedJsons(dir) {
     .filter(e => e.endsWith('.extracted.json'))
     .map(e => join(dir, e))
     .sort();
-}
-
-function stripNoise(text) {
-  return text
-    .replace(/\r/g, '')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-async function ocrPages(pages, outDir, pool) {
-  const results = [];
-  let inFlight = 0;
-  let i = 0;
-  const total = pages.length;
-
-  return new Promise((resolveAll, reject) => {
-    const next = () => {
-      if (i >= total && inFlight === 0) {
-        resolveAll(results);
-        return;
-      }
-      while (inFlight < pool.length && i < total) {
-        const idx = i++;
-        const page = pages[idx];
-        const worker = pool[inFlight];
-        inFlight += 1;
-        const pngAbs = join(outDir, page.png);
-        worker.recognize(pngAbs)
-          .then(({ data }) => {
-            const text = stripNoise(data.text || '');
-            results[idx] = {
-              role: page.role,
-              page: page.page,
-              png: page.png,
-              text,
-              likely_diagram: text.length < DIAGRAM_TEXT_THRESHOLD,
-              confidence: Math.round(data.confidence || 0),
-            };
-            process.stdout.write(`\r   OCR ${results.filter(Boolean).length}/${total}  `);
-          })
-          .catch(err => { results[idx] = { ...page, error: err.message }; })
-          .finally(() => {
-            inFlight -= 1;
-            next();
-          });
-      }
-    };
-    next();
-  });
 }
 
 async function processOne(jsonPath, poolFactory) {
@@ -118,10 +72,20 @@ async function processOne(jsonPath, poolFactory) {
     } catch { /* nicht vorhanden, weiter */ }
   }
 
+  if (!Array.isArray(doc.pages) || doc.pages.length === 0) {
+    throw new Error('pages[] fehlt oder ist leer');
+  }
   console.log(`\n📄 ${basename(jsonPath)} — ${doc.pages.length} Seiten`);
   const pool = await poolFactory();
   try {
-    const pagesOcr = await ocrPages(doc.pages, outDir, pool);
+    const pagesOcr = await ocrPages(doc.pages, outDir, pool, {
+      diagramTextThreshold: DIAGRAM_TEXT_THRESHOLD,
+      onProgress: (completed, total) => process.stdout.write(`\r   OCR ${completed}/${total}  `),
+    });
+    const failedPages = pagesOcr.filter(page => page.error);
+    if (failedPages.length > 0) {
+      throw new Error(`OCR für ${failedPages.length}/${pagesOcr.length} Seiten fehlgeschlagen`);
+    }
     const out = {
       source_pdf: doc.source_pdf,
       solution_pdf: doc.solution_pdf,
@@ -184,6 +148,7 @@ async function main() {
   console.log(`\n✨ Fertig — ${done} OCR-Dateien geschrieben${skipped ? `, ${skipped} übersprungen` : ''}${errored ? `, ${errored} Fehler` : ''}.`);
   console.log(`\nNächster Schritt: Claude Code bitten, alle *.ocr.json zu lesen und daraus`);
   console.log(`<name>.questions.json gemäß tools/prompts/system.md zu erzeugen.`);
+  if (errored > 0) process.exitCode = 1;
 }
 
 main().catch(err => {

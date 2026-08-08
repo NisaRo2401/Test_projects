@@ -15,17 +15,19 @@
 //   "GA_1_FiAe.pdf"                              → GA1 (Jahr unbekannt)
 //   "Lösung_GA_2_Fi_beide.pdf"                   → GA2, isSolution=true
 
-const PART_RE    = /\b(AP1|GA\s*[-_]?\s*1|GA\s*[-_]?\s*2|WISO|WiSo|Wiso)\b/i;
+// Unterstriche gelten in regulären Ausdrücken als Wortzeichen. Explizite
+// alphanumerische Grenzen erkennen deshalb auch Namen wie AP2_GA1_Sommer_2022.
+const PART_RE = /(?<![a-z0-9])(AP1|GA\s*[-_]?\s*1|GA\s*[-_]?\s*2|WISO)(?![a-z0-9])/i;
 const SEASON_LONG_RE = /(Sommer|Winter)/i;            // auch wenn Jahr direkt angeklebt
 const SEASON_SHORT_RE = /(?:^|[^a-z])([SW])\s*-?\s*(\d{2,4})(?![a-z])/i;  // S24, W-2023, S2025
 const YEAR_LONG_RE = /(?<![0-9])(20\d{2})(?![0-9])/;
-const YEAR_SHORT_RE = /\b'?(\d{2})\b/;
+const YEAR_SHORT_RE = /(?<!\d)'?(\d{2})(?!\d)/;
 
 // Lösungs-PDF erkennen
-const SOLUTION_RE = /(l[öo]es?u?ng|l[öo]ser|loeser|solution|musterl[öo]sung)/i;
+const SOLUTION_RE = /(?<![a-z0-9])(?:l(?:ö|oe|o)sung(?:en)?|l(?:ö|oe|o)ser|solution|musterl(?:ö|oe|o)sung)(?![a-z0-9])/iu;
 
 // T1/T2-Heuristik innerhalb AP2: T1 → GA1 (Entwicklung), T2 → GA2 (Planung)
-const AP2_T_RE = /\bAP\s*2?\s*[-_\s]?\s*T(?:eil)?[-_\s]?\s*([12])\b/i;
+const AP2_T_RE = /(?<![a-z0-9])AP\s*2?\s*[-_\s]?\s*T(?:eil)?[-_\s]?\s*([12])(?![a-z0-9])/i;
 
 export function parseFilename(basename) {
   const clean = basename.replace(/\.pdf$/i, '');

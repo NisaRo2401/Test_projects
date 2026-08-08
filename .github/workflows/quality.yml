@@ -1,0 +1,30 @@
+name: Quality checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - run: npm ci --prefix tools
+      - run: npm test
+      - run: npm audit --prefix tools --omit=dev --audit-level=high
+      - name: Check import tools
+        run: |
+          node --check tools/extract-pdf.mjs
+          node --check tools/ocr-extract.mjs
+          node --check tools/insert-questions.mjs
+      - name: Build production container
+        run: docker build --tag fiae-lernhub:test .

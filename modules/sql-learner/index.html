@@ -3,11 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interaktiver SQL-Trainer mit 59 Aufgaben von Grundlagen bis zu CTEs und Window Functions.">
+<meta name="theme-color" content="#0d1117">
 <title>SQL Quest – AP2 Trainer</title>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;color-scheme:dark;}
 code,pre,textarea,kbd{font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;}
+button,textarea{font:inherit;}
+button:focus-visible,textarea:focus-visible{outline:2px solid #79c0ff;outline-offset:2px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
 /* HUD */
 .hud{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;flex-wrap:wrap;}
@@ -18,7 +24,7 @@ code,pre,textarea,kbd{font-family:'JetBrains Mono','Fira Code','Cascadia Code',m
 .xp-top{display:flex;justify-content:space-between;font-size:10px;color:#8b949e;margin-bottom:3px;}
 .xp-bg{height:5px;background:#21262d;border-radius:3px;}
 .xp-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#238636,#2ea043);transition:width .5s ease;}
-npm install -g yarn
+
 /* Nav */
 .nav{display:flex;background:#161b22;border-bottom:1px solid #30363d;overflow-x:auto;}
 .nav-btn{padding:9px 16px;font-size:12px;font-weight:500;border:none;background:none;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;white-space:nowrap;}
@@ -99,7 +105,7 @@ table.rt tr:hover td{background:#1c2128;}
 .progress-panel{padding:14px 16px;}
 .p-group{margin-bottom:18px;}
 .p-group-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
-.p-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;transition:background .1s;}
+.p-item{width:100%;display:flex;align-items:center;gap:8px;padding:7px 8px;border:0;border-radius:6px;cursor:pointer;transition:background .1s;background:none;color:inherit;text-align:left;font-family:inherit;}
 .p-item:hover{background:#21262d;}
 .p-item.curr{background:#031d4e;}
 .p-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
@@ -116,7 +122,7 @@ table.rt tr:hover td{background:#1c2128;}
 
 /* Inline table schema */
 .task-tables{padding:8px 16px;border-bottom:1px solid #21262d;}
-.tt-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:5px;user-select:none;}
+.tt-label{width:100%;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#8b949e;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:5px;user-select:none;background:none;border:0;text-align:left;}
 .tt-label .tt-toggle{font-size:9px;color:#58a6ff;margin-left:auto;}
 .tt-grid{display:flex;flex-wrap:wrap;gap:8px;}
 .tt-tbl{background:#0d1117;border:1px solid #30363d;border-radius:6px;min-width:140px;flex:1;max-width:260px;}
@@ -126,21 +132,31 @@ table.rt tr:hover td{background:#1c2128;}
 .tt-cn{color:#e6edf3;min-width:100px;}
 .tt-ct{color:#3fb950;min-width:55px;}
 .tt-cx{color:#8b949e;font-size:10px;}
+
+@media (max-width:640px){
+  .hud,.task-card,.editor-wrap,.actions,.result-area,.schema-panel,.progress-panel{padding-left:12px;padding-right:12px;}
+  .hud-title{width:100%;}
+  .xp-wrap{order:5;flex-basis:100%;}
+  .hint-left{order:3;width:100%;margin-left:0;display:flex;justify-content:space-between;gap:8px;}
+  .mysql-badge{margin-left:0;}
+  .tt-tbl{max-width:none;min-width:100%;}
+  .c-n{min-width:115px;}
+}
+@media (prefers-reduced-motion:reduce){.xp-fill,.p-item{transition:none}.spin{animation-duration:1.2s;}}
 </style>
 </head>
 <body>
-<div id="app"><div class="loading"><div class="spin"></div> SQL-Engine wird geladen…</div></div>
+<div id="app"><div class="loading" role="status" aria-live="polite"><div class="spin" aria-hidden="true"></div> SQL-Engine wird geladen…</div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 <script>
 // ── Schema & Daten ────────────────────────────────────────────
 const SCHEMA_SQL = `
-CREATE TABLE kunden(id INTEGER PRIMARY KEY,vorname TEXT,nachname TEXT,email TEXT,stadt TEXT,plz TEXT,land TEXT DEFAULT 'Deutschland',registriert_am TEXT,aktiv INTEGER DEFAULT 1);
-CREATE TABLE kategorien(id INTEGER PRIMARY KEY,name TEXT,beschreibung TEXT);
-CREATE TABLE produkte(id INTEGER PRIMARY KEY,name TEXT,kategorie_id INTEGER,preis REAL,lagerbestand INTEGER,lieferant TEXT);
-CREATE TABLE bestellungen(id INTEGER PRIMARY KEY,kunden_id INTEGER,bestelldatum TEXT,status TEXT,versandkosten REAL);
-CREATE TABLE bestellpositionen(id INTEGER PRIMARY KEY,bestellung_id INTEGER,produkt_id INTEGER,menge INTEGER,einzelpreis REAL);
-CREATE TABLE mitarbeiter(id INTEGER PRIMARY KEY,vorname TEXT,nachname TEXT,abteilung TEXT,gehalt REAL,vorgesetzter_id INTEGER,eingestellt_am TEXT);`;
+CREATE TABLE kunden(id INTEGER PRIMARY KEY,vorname TEXT NOT NULL,nachname TEXT NOT NULL,email TEXT UNIQUE,stadt TEXT NOT NULL,plz TEXT NOT NULL,land TEXT NOT NULL DEFAULT 'Deutschland',registriert_am TEXT NOT NULL DEFAULT CURRENT_DATE,aktiv INTEGER NOT NULL DEFAULT 1 CHECK(aktiv IN (0,1)));
+CREATE TABLE kategorien(id INTEGER PRIMARY KEY,name TEXT NOT NULL UNIQUE,beschreibung TEXT);
+CREATE TABLE produkte(id INTEGER PRIMARY KEY,name TEXT NOT NULL,kategorie_id INTEGER NOT NULL,preis REAL NOT NULL CHECK(preis >= 0),lagerbestand INTEGER NOT NULL CHECK(lagerbestand >= 0),lieferant TEXT NOT NULL,FOREIGN KEY(kategorie_id) REFERENCES kategorien(id));
+CREATE TABLE bestellungen(id INTEGER PRIMARY KEY,kunden_id INTEGER NOT NULL,bestelldatum TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('offen','versendet','geliefert','storniert')),versandkosten REAL NOT NULL CHECK(versandkosten >= 0),FOREIGN KEY(kunden_id) REFERENCES kunden(id));
+CREATE TABLE bestellpositionen(id INTEGER PRIMARY KEY,bestellung_id INTEGER NOT NULL,produkt_id INTEGER NOT NULL,menge INTEGER NOT NULL CHECK(menge > 0),einzelpreis REAL NOT NULL CHECK(einzelpreis >= 0),FOREIGN KEY(bestellung_id) REFERENCES bestellungen(id) ON DELETE CASCADE,FOREIGN KEY(produkt_id) REFERENCES produkte(id));
+CREATE TABLE mitarbeiter(id INTEGER PRIMARY KEY,vorname TEXT NOT NULL,nachname TEXT NOT NULL,abteilung TEXT NOT NULL,gehalt REAL NOT NULL CHECK(gehalt >= 0),vorgesetzter_id INTEGER,eingestellt_am TEXT NOT NULL,FOREIGN KEY(vorgesetzter_id) REFERENCES mitarbeiter(id));`;
 
 const DATA_SQL = `
 INSERT INTO kunden VALUES(1,'Anna','Müller','anna@test.de','Berlin','10115','Deutschland','2023-01-15',1);
@@ -228,7 +244,6 @@ const TT_OPEN={};  // tracks collapsed state per task
 // ── Aufgaben ──────────────────────────────────────────────────
 const T=[
   // ── Level 1: Grundlagen ──
-  // ── Level 1: Grundlagen ──
   {id:1,lv:1,xp:30,title:'Alle Kunden anzeigen',tables:['kunden'],
    desc:'Zeige alle Spalten und alle Zeilen der Tabelle <code>kunden</code> an.',
    sql:'SELECT * FROM kunden',
@@ -287,8 +302,8 @@ const T=[
    tags:['SUM','GROUP BY','AS']},
 
   {id:10,lv:3,xp:70,title:'Wie viele Kunden pro Stadt?',tables:['kunden'],
-   desc:'Zähle wie viele Kunden in jeder Stadt wohnen. Spalten: <code>stadt</code> und <code>anzahl</code>. Sortiere nach Anzahl absteigend.',
-   sql:'SELECT stadt, COUNT(*) AS anzahl FROM kunden GROUP BY stadt ORDER BY anzahl DESC',
+   desc:'Zähle wie viele Kunden in jeder Stadt wohnen. Spalten: <code>stadt</code> und <code>anzahl</code>. Sortiere nach Anzahl absteigend und bei Gleichstand alphabetisch nach Stadt.',
+   sql:'SELECT stadt, COUNT(*) AS anzahl FROM kunden GROUP BY stadt ORDER BY anzahl DESC, stadt ASC',
    hints:['<code>COUNT(*)</code> zählt die Zeilen in jeder Gruppe.','<code>GROUP BY stadt</code> fasst alle Kunden nach Stadt zusammen.','Du kannst nach einer berechneten Spalte sortieren: <code>ORDER BY anzahl DESC</code>'],
    tags:['COUNT','GROUP BY','ORDER BY']},
 
@@ -344,8 +359,8 @@ const T=[
    tags:['Subquery','AVG','Unterabfrage in WHERE']},
 
   {id:19,lv:5,xp:130,title:'Vielbesteller – JOIN + GROUP BY + HAVING',tables:['kunden','bestellungen'],
-   desc:'Zeige <code>vorname</code>, <code>nachname</code> und <code>anzahl_bestellungen</code> aller Kunden mit mehr als 1 Bestellung. Sortiere absteigend.',
-   sql:'SELECT k.vorname, k.nachname, COUNT(b.id) AS anzahl_bestellungen FROM kunden k INNER JOIN bestellungen b ON k.id = b.kunden_id GROUP BY k.id, k.vorname, k.nachname HAVING COUNT(b.id) > 1 ORDER BY anzahl_bestellungen DESC',
+   desc:'Zeige <code>vorname</code>, <code>nachname</code> und <code>anzahl_bestellungen</code> aller Kunden mit mehr als 1 Bestellung. Sortiere nach Anzahl absteigend und anschließend nach Nach- und Vorname.',
+   sql:'SELECT k.vorname, k.nachname, COUNT(b.id) AS anzahl_bestellungen FROM kunden k INNER JOIN bestellungen b ON k.id = b.kunden_id GROUP BY k.id, k.vorname, k.nachname HAVING COUNT(b.id) > 1 ORDER BY anzahl_bestellungen DESC, k.nachname, k.vorname',
    hints:['JOIN: verbinde kunden + bestellungen. GROUP BY: fasse nach Kunden zusammen. COUNT: zähle Bestellungen.','<code>HAVING COUNT(b.id) > 1</code> filtert nach der Aggregation auf Gruppenebene.','Dieses Muster JOIN + GROUP BY + HAVING ist ein AP2-Klassiker!'],
    tags:['JOIN','GROUP BY','HAVING','AP2-Klassiker']},
 
@@ -358,6 +373,8 @@ const T=[
   {id:21,lv:5,xp:140,title:'UPDATE: Lagerbestand reduzieren',tables:['produkte'],
    desc:'Reduziere den <code>lagerbestand</code> des Produkts mit <code>id = 3</code> um 10 Stück. Prüfe danach mit: <code>SELECT id, name, lagerbestand FROM produkte WHERE id = 3</code>',
    isDML:true,
+   command:'UPDATE',
+   solution:'UPDATE produkte SET lagerbestand = lagerbestand - 10 WHERE id = 3',
    verifySQL:'SELECT id, name, lagerbestand FROM produkte WHERE id = 3',
    expectedVerify:[[3,'Mechanische Tastatur Pro',40]],
    hints:['<code>UPDATE tabelle SET spalte = wert WHERE bedingung</code>','Du willst um 10 verringern, nicht auf 10 setzen: <code>SET lagerbestand = lagerbestand - 10</code>','Vergiss <code>WHERE id = 3</code> nicht! Ohne WHERE werden ALLE Zeilen geändert.'],
@@ -366,6 +383,8 @@ const T=[
   {id:22,lv:5,xp:140,title:'DELETE: Stornierte Bestellungen',tables:['bestellungen'],
    desc:"Lösche alle Bestellungen mit <code>status = 'storniert'</code>. Prüfe: <code>SELECT COUNT(*) AS anzahl FROM bestellungen WHERE status = 'storniert'</code>",
    isDML:true,
+   command:'DELETE',
+   solution:"DELETE FROM bestellungen WHERE status = 'storniert'",
    verifySQL:"SELECT COUNT(*) AS anzahl FROM bestellungen WHERE status = 'storniert'",
    expectedVerify:[[0]],
    hints:['<code>DELETE FROM tabelle WHERE bedingung</code>','OHNE <code>WHERE</code> würdest du ALLE Zeilen löschen – extrem gefährlich!',
@@ -417,8 +436,8 @@ const T=[
    tags:['LIKE','Datum','Textformat']},
 
   {id:30,lv:2,xp:60,title:'Produkte mehrerer Lieferanten',tables:['produkte'],
-   desc:'Zeige <code>name</code>, <code>preis</code> und <code>lieferant</code> aller Produkte von <strong>InputDevices AG</strong> oder <strong>FurniOffice</strong>. Sortiere nach Lieferant.',
-   sql:"SELECT name, preis, lieferant FROM produkte WHERE lieferant IN ('InputDevices AG','FurniOffice') ORDER BY lieferant",
+   desc:'Zeige <code>name</code>, <code>preis</code> und <code>lieferant</code> aller Produkte von <strong>InputDevices AG</strong> oder <strong>FurniOffice</strong>. Sortiere nach Lieferant und Produktname.',
+   sql:"SELECT name, preis, lieferant FROM produkte WHERE lieferant IN ('InputDevices AG','FurniOffice') ORDER BY lieferant, name",
    hints:['<code>IN (\'Wert1\',\'Wert2\')</code> ist kürzer als zwei OR-Bedingungen.','Beide Lieferantennamen müssen exakt (Groß-/Kleinschreibung!) stimmen.','<code>ORDER BY lieferant</code> gruppiert die Ergebnisse optisch nach Lieferant.'],
    tags:['IN','ORDER BY','Lieferant']},
 
@@ -436,8 +455,8 @@ const T=[
    tags:['SUM','GROUP BY','ORDER BY']},
 
   {id:33,lv:3,xp:75,title:'Anzahl Produkte pro Kategorie',tables:['produkte','kategorien'],
-   desc:'Zeige wie viele Produkte in jeder Kategorie sind. Spalten: Kategoriename (<code>kategorie</code>) und <code>anzahl</code>. Sortiere absteigend.',
-   sql:'SELECT k.name AS kategorie, COUNT(p.id) AS anzahl FROM kategorien k LEFT JOIN produkte p ON k.id = p.kategorie_id GROUP BY k.id, k.name ORDER BY anzahl DESC',
+   desc:'Zeige wie viele Produkte in jeder Kategorie sind. Spalten: Kategoriename (<code>kategorie</code>) und <code>anzahl</code>. Sortiere nach Anzahl absteigend und bei Gleichstand alphabetisch.',
+   sql:'SELECT k.name AS kategorie, COUNT(p.id) AS anzahl FROM kategorien k LEFT JOIN produkte p ON k.id = p.kategorie_id GROUP BY k.id, k.name ORDER BY anzahl DESC, k.name ASC',
    hints:['Hier brauchst du einen JOIN zwischen kategorien und produkte.','<code>LEFT JOIN</code> statt INNER JOIN – so erscheinen auch Kategorien ohne Produkte.','<code>COUNT(p.id)</code> zählt nur echte Produkte (NULL wird nicht gezählt).'],
    tags:['COUNT','JOIN','GROUP BY']},
 
@@ -461,8 +480,8 @@ const T=[
    tags:['LEFT JOIN','MAX','GROUP BY','NULL']},
 
   {id:37,lv:4,xp:100,title:'UNION: Kunden und Mitarbeiter',tables:['kunden','mitarbeiter'],
-   desc:'Erstelle eine kombinierte Liste mit allen Vor- und Nachnamen aus <code>kunden</code> UND <code>mitarbeiter</code>. Spalten: <code>vorname</code>, <code>nachname</code>, <code>typ</code> (entweder "Kunde" oder "Mitarbeiter"). Sortiere nach Nachname.',
-   sql:"SELECT vorname, nachname, 'Kunde' AS typ FROM kunden UNION ALL SELECT vorname, nachname, 'Mitarbeiter' AS typ FROM mitarbeiter ORDER BY nachname",
+   desc:'Erstelle eine kombinierte Liste mit allen Vor- und Nachnamen aus <code>kunden</code> UND <code>mitarbeiter</code>. Spalten: <code>vorname</code>, <code>nachname</code>, <code>typ</code> (entweder "Kunde" oder "Mitarbeiter"). Sortiere nach Nachname, Vorname und Typ.',
+   sql:"SELECT vorname, nachname, 'Kunde' AS typ FROM kunden UNION ALL SELECT vorname, nachname, 'Mitarbeiter' AS typ FROM mitarbeiter ORDER BY nachname, vorname, typ",
    hints:['<code>UNION</code> kombiniert die Ergebnisse zweier SELECT-Abfragen.','Beide SELECTs müssen gleich viele Spalten haben und kompatible Typen.','<code>UNION ALL</code> behält Duplikate – <code>UNION</code> (ohne ALL) entfernt sie.','Du kannst eine Konstante als Spalte einfügen: <code>\'Kunde\' AS typ</code>'],
    tags:['UNION','UNION ALL','Konstante als Spalte']},
 
@@ -474,11 +493,13 @@ const T=[
    tags:['NOT EXISTS','Korrelierte Unterabfrage','Subquery']},
 
   {id:39,lv:5,xp:130,title:'INSERT: Neuen Kunden anlegen',tables:['kunden'],
-   desc:"Füge einen neuen Kunden ein: vorname='Max', nachname='Mustermann', email='max@test.de', stadt='Frankfurt', plz='60311', aktiv=1. Prüfe: <code>SELECT id, vorname, nachname, stadt FROM kunden WHERE nachname = 'Mustermann'</code>",
+   desc:"Füge einen neuen Kunden ein: vorname='Max', nachname='Mustermann', email='max@test.de', stadt='Frankfurt', plz='60311', aktiv=1. Prüfe: <code>SELECT vorname, nachname, stadt FROM kunden WHERE nachname = 'Mustermann'</code>",
    isDML:true,
+   command:'INSERT',
+   solution:"INSERT INTO kunden (vorname, nachname, email, stadt, plz, aktiv) VALUES ('Max', 'Mustermann', 'max@test.de', 'Frankfurt', '60311', 1)",
    verifySQL:"SELECT vorname, nachname, stadt FROM kunden WHERE nachname = 'Mustermann'",
    expectedVerify:[['Max','Mustermann','Frankfurt']],
-   hints:["<code>INSERT INTO tabelle (spalte1, spalte2) VALUES (wert1, wert2)</code>","Du musst nicht alle Spalten angeben – id (AUTOINCREMENT) und land (DEFAULT) werden automatisch gesetzt.","Textwerte in einfache Anführungszeichen: <code>'Max'</code>"],
+   hints:["<code>INSERT INTO tabelle (spalte1, spalte2) VALUES (wert1, wert2)</code>","Du musst nicht alle Spalten angeben – id wird automatisch vergeben; land und registriert_am haben Standardwerte.","Textwerte in einfache Anführungszeichen: <code>'Max'</code>"],
    tags:['INSERT INTO','DML','VALUES']},
 
   {id:40,lv:5,xp:140,title:'Mitarbeiter über Firmendurchschnitt',tables:['mitarbeiter'],
@@ -491,24 +512,177 @@ const T=[
    desc:'Berechne pro Bestellung den Gesamtwert und kategorisiere: unter 100€ = "Klein", 100–500€ = "Mittel", über 500€ = "Groß". Spalten: <code>bestellung_id</code>, <code>gesamtwert</code>, <code>kategorie</code>.',
    sql:"SELECT bestellung_id, ROUND(SUM(menge*einzelpreis),2) AS gesamtwert, CASE WHEN SUM(menge*einzelpreis) < 100 THEN 'Klein' WHEN SUM(menge*einzelpreis) <= 500 THEN 'Mittel' ELSE 'Groß' END AS kategorie FROM bestellpositionen GROUP BY bestellung_id ORDER BY gesamtwert DESC",
    hints:['Erst <code>GROUP BY bestellung_id</code> + <code>SUM()</code> um den Gesamtwert zu berechnen.','Dann <code>CASE WHEN</code> direkt auf den aggregierten Wert anwenden.','Du kannst <code>CASE WHEN SUM(...)</code> in der SELECT-Liste verwenden.','Reihenfolge der CASE-Bedingungen ist wichtig: zuerst < 100, dann <= 500, dann ELSE.'],
-   tags:['CASE WHEN','GROUP BY','SUM','Kombination']}
+   tags:['CASE WHEN','GROUP BY','SUM','Kombination']},
+
+  // ── Erweiterte Übungen ──
+  {id:42,lv:1,xp:35,title:'Vollständige Kundennamen',tables:['kunden'],
+   desc:"Verbinde <code>vorname</code> und <code>nachname</code> mit einem Leerzeichen. Nenne die Ergebnisspalte <code>vollname</code> und sortiere nach <code>id</code>.",
+   sql:"SELECT CONCAT(vorname, ' ', nachname) AS vollname FROM kunden ORDER BY id",
+   hints:['<code>CONCAT()</code> verbindet mehrere Textwerte.','Das Leerzeichen muss als eigener Textwert übergeben werden.','Nutze <code>AS vollname</code> für den geforderten Spaltennamen.'],
+   tags:['CONCAT','AS','ORDER BY']},
+
+  {id:43,lv:2,xp:60,title:'Registrierungen im zweiten Quartal',tables:['kunden'],
+   desc:'Zeige <code>vorname</code>, <code>nachname</code> und <code>registriert_am</code> aller Kunden, die sich vom 01.04.2023 bis einschließlich 30.06.2023 registriert haben. Sortiere nach Datum und anschließend nach <code>id</code>.',
+   sql:"SELECT vorname, nachname, registriert_am FROM kunden WHERE registriert_am BETWEEN '2023-04-01' AND '2023-06-30' ORDER BY registriert_am, id",
+   hints:['Datumswerte im Format YYYY-MM-DD lassen sich chronologisch als Text vergleichen.','<code>BETWEEN</code> schließt beide Grenzen ein.','Verwende zwei Spalten in <code>ORDER BY</code>.'],
+   tags:['BETWEEN','Datum','Mehrfachsortierung']},
+
+  {id:44,lv:2,xp:60,title:'Fehlende E-Mail ersetzen',tables:['kunden'],
+   desc:"Zeige <code>vorname</code>, <code>nachname</code> und die E-Mail als <code>kontakt</code>. Ersetze NULL durch den Text 'keine Angabe'. Sortiere nach <code>id</code>.",
+   sql:"SELECT vorname, nachname, COALESCE(email, 'keine Angabe') AS kontakt FROM kunden ORDER BY id",
+   hints:['<code>COALESCE(a, b)</code> liefert den ersten Wert, der nicht NULL ist.','Gib der berechneten Spalte den Alias <code>kontakt</code>.'],
+   tags:['COALESCE','NULL','AS']},
+
+  {id:45,lv:2,xp:65,title:'Produktseite mit OFFSET',tables:['produkte'],
+   desc:'Sortiere Produkte nach Preis absteigend und zeige mit <code>LIMIT</code> und <code>OFFSET</code> genau das dritte und vierte Produkt. Spalten: <code>name</code>, <code>preis</code>.',
+   sql:'SELECT name, preis FROM produkte ORDER BY preis DESC LIMIT 2 OFFSET 2',
+   hints:['<code>LIMIT 2</code> begrenzt die Ausgabe auf zwei Zeilen.','<code>OFFSET 2</code> überspringt die ersten beiden Zeilen.','Die Sortierung muss vor LIMIT und OFFSET feststehen.'],
+   tags:['LIMIT','OFFSET','Paginierung']},
+
+  {id:46,lv:3,xp:85,title:'Statusübersicht mit bedingter Aggregation',tables:['bestellungen'],
+   desc:'Gib in genau einer Ergebniszeile die Anzahl aller Bestellungen als <code>gesamt</code>, die Anzahl gelieferter als <code>geliefert</code> und die Anzahl offener als <code>offen</code> aus.',
+   sql:"SELECT COUNT(*) AS gesamt, SUM(CASE WHEN status = 'geliefert' THEN 1 ELSE 0 END) AS geliefert, SUM(CASE WHEN status = 'offen' THEN 1 ELSE 0 END) AS offen FROM bestellungen",
+   hints:['Jede passende Zeile kann mit CASE den Wert 1, jede andere den Wert 0 liefern.','<code>SUM(CASE WHEN ... THEN 1 ELSE 0 END)</code> zählt bedingt.','Ohne GROUP BY entsteht genau eine Ergebniszeile.'],
+   tags:['CASE WHEN','SUM','Bedingte Aggregation']},
+
+  {id:47,lv:3,xp:80,title:'Bestellungen pro Monat',tables:['bestellungen'],
+   desc:'Ermittle aus <code>bestelldatum</code> den Monat im Format YYYY-MM als <code>monat</code> und zähle die Bestellungen als <code>anzahl</code>. Sortiere chronologisch.',
+   sql:'SELECT SUBSTR(bestelldatum, 1, 7) AS monat, COUNT(*) AS anzahl FROM bestellungen GROUP BY SUBSTR(bestelldatum, 1, 7) ORDER BY monat',
+   hints:['Die ersten sieben Zeichen des Datums ergeben YYYY-MM.','Mit <code>SUBSTR(bestelldatum, 1, 7)</code> extrahierst du diesen Teil.','Gruppiere nach demselben Ausdruck.'],
+   tags:['SUBSTR','COUNT','GROUP BY']},
+
+  {id:48,lv:3,xp:85,title:'Bestellungen und Kunden je Status',tables:['bestellungen'],
+   desc:'Zeige je <code>status</code> die Anzahl der Bestellungen als <code>bestellungen</code> und die Anzahl unterschiedlicher Kunden als <code>kunden</code>. Sortiere alphabetisch nach Status.',
+   sql:'SELECT status, COUNT(*) AS bestellungen, COUNT(DISTINCT kunden_id) AS kunden FROM bestellungen GROUP BY status ORDER BY status',
+   hints:['<code>COUNT(*)</code> zählt Bestellungen.','<code>COUNT(DISTINCT kunden_id)</code> zählt jeden Kunden pro Status nur einmal.','Gruppiere und sortiere nach <code>status</code>.'],
+   tags:['COUNT DISTINCT','GROUP BY','Aggregation']},
+
+  {id:49,lv:4,xp:110,title:'Gelieferte Bestellungen mit Warenwert',tables:['kunden','bestellungen','bestellpositionen'],
+   desc:'Zeige für jede gelieferte Bestellung <code>bestellung_id</code>, den Kundennamen als <code>kunde</code> und den gerundeten Positionswert als <code>warenwert</code>. Sortiere nach Warenwert absteigend und danach nach Bestell-ID.',
+   sql:"SELECT b.id AS bestellung_id, CONCAT(k.vorname, ' ', k.nachname) AS kunde, ROUND(SUM(bp.menge * bp.einzelpreis), 2) AS warenwert FROM bestellungen b INNER JOIN kunden k ON k.id = b.kunden_id INNER JOIN bestellpositionen bp ON bp.bestellung_id = b.id WHERE b.status = 'geliefert' GROUP BY b.id, k.vorname, k.nachname ORDER BY warenwert DESC, b.id",
+   hints:['Verbinde zuerst Bestellung und Kunde, danach die Bestellpositionen.','Filtere den Status vor der Gruppierung mit WHERE.','Pro Bestellung wird <code>SUM(menge * einzelpreis)</code> gebildet.'],
+   tags:['Multi-JOIN','WHERE','SUM','GROUP BY']},
+
+  {id:50,lv:4,xp:105,title:'Produkte, die bestellt wurden',tables:['produkte','bestellpositionen'],
+   desc:'Zeige <code>name</code> und <code>preis</code> aller Produkte, die mindestens einmal in einer Bestellposition vorkommen. Nutze <code>EXISTS</code> und sortiere nach Produktname.',
+   sql:'SELECT p.name, p.preis FROM produkte p WHERE EXISTS (SELECT 1 FROM bestellpositionen bp WHERE bp.produkt_id = p.id) ORDER BY p.name',
+   hints:['Die Unterabfrage muss das aktuelle Produkt über <code>p.id</code> referenzieren.','<code>EXISTS</code> ist wahr, sobald mindestens eine passende Zeile existiert.','In einer EXISTS-Unterabfrage genügt <code>SELECT 1</code>.'],
+   tags:['EXISTS','Korrelierte Unterabfrage']},
+
+  {id:51,lv:4,xp:115,title:'Kundenumsatz inklusive Nullwerte',tables:['kunden','bestellungen','bestellpositionen'],
+   desc:'Zeige alle Kunden mit <code>vorname</code>, <code>nachname</code>, Anzahl ihrer Bestellungen als <code>anzahl_bestellungen</code> und Positionsumsatz als <code>gesamtumsatz</code>. Kunden ohne Bestellung erhalten 0. Sortiere nach Umsatz absteigend und anschließend nach Kunden-ID.',
+   sql:'SELECT k.vorname, k.nachname, COUNT(DISTINCT b.id) AS anzahl_bestellungen, COALESCE(ROUND(SUM(bp.menge * bp.einzelpreis), 2), 0) AS gesamtumsatz FROM kunden k LEFT JOIN bestellungen b ON b.kunden_id = k.id LEFT JOIN bestellpositionen bp ON bp.bestellung_id = b.id GROUP BY k.id, k.vorname, k.nachname ORDER BY gesamtumsatz DESC, k.id',
+   hints:['Zwei LEFT JOINs erhalten auch Kunden ohne Bestellung und ohne Position.','Zähle Bestellungen mit <code>COUNT(DISTINCT b.id)</code>, damit Positionen nicht doppelt zählen.','<code>COALESCE(..., 0)</code> ersetzt die leere Summe.'],
+   tags:['LEFT JOIN','COUNT DISTINCT','COALESCE']},
+
+  {id:52,lv:5,xp:140,title:'CTE für große Bestellungen',tables:['bestellpositionen'],
+   desc:'Berechne in einer CTE <code>bestellwerte</code> den <code>gesamtwert</code> je Bestellung. Gib daraus alle Werte ab 500 Euro aus und sortiere nach Gesamtwert absteigend, danach nach Bestell-ID.',
+   sql:'WITH bestellwerte AS (SELECT bestellung_id, ROUND(SUM(menge * einzelpreis), 2) AS gesamtwert FROM bestellpositionen GROUP BY bestellung_id) SELECT bestellung_id, gesamtwert FROM bestellwerte WHERE gesamtwert >= 500 ORDER BY gesamtwert DESC, bestellung_id',
+   hints:['Eine CTE beginnt mit <code>WITH name AS (...)</code>.','Die innere Abfrage gruppiert die Positionen pro Bestellung.','Die äußere Abfrage filtert das bereits berechnete Ergebnis.'],
+   tags:['CTE','WITH','Aggregation']},
+
+  {id:53,lv:5,xp:150,title:'Preisrang innerhalb jeder Kategorie',tables:['produkte','kategorien'],
+   desc:'Zeige <code>kategorie</code>, Produktname als <code>produkt</code>, <code>preis</code> und den absteigenden <code>preisrang</code> innerhalb jeder Kategorie. Nutze <code>DENSE_RANK()</code>. Sortiere nach Kategorie, Rang und Produktname.',
+   sql:'SELECT k.name AS kategorie, p.name AS produkt, p.preis, DENSE_RANK() OVER (PARTITION BY k.id ORDER BY p.preis DESC) AS preisrang FROM produkte p INNER JOIN kategorien k ON k.id = p.kategorie_id ORDER BY kategorie, preisrang, produkt',
+   hints:['<code>PARTITION BY</code> startet die Rangfolge je Kategorie neu.','<code>ORDER BY p.preis DESC</code> innerhalb des Fensters gibt dem teuersten Produkt Rang 1.','Die abschließende Sortierung steuert nur die Ausgabe.'],
+   tags:['DENSE_RANK','OVER','PARTITION BY']},
+
+  {id:54,lv:5,xp:160,title:'Kumulierter Umsatz nach Datum',tables:['bestellungen','bestellpositionen'],
+   desc:'Berechne zunächst den Warenwert jeder Bestellung. Zeige dann <code>bestellung_id</code>, <code>bestelldatum</code>, <code>warenwert</code> und den nach Datum sowie ID kumulierten Wert als <code>kumulierter_umsatz</code>.',
+   sql:'WITH bestellwerte AS (SELECT b.id AS bestellung_id, b.bestelldatum, ROUND(SUM(bp.menge * bp.einzelpreis), 2) AS warenwert FROM bestellungen b INNER JOIN bestellpositionen bp ON bp.bestellung_id = b.id GROUP BY b.id, b.bestelldatum) SELECT bestellung_id, bestelldatum, warenwert, ROUND(SUM(warenwert) OVER (ORDER BY bestelldatum, bestellung_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 2) AS kumulierter_umsatz FROM bestellwerte ORDER BY bestelldatum, bestellung_id',
+   hints:['Die CTE liefert genau eine Zeile je Bestellung.','Eine laufende Summe nutzt <code>SUM(...) OVER (ORDER BY ...)</code>.','Der explizite Fensterrahmen endet bei der aktuellen Zeile.'],
+   tags:['CTE','Window Function','Laufende Summe']},
+
+  {id:55,lv:5,xp:150,title:'Teuerstes Produkt je Kategorie',tables:['produkte','kategorien'],
+   desc:'Zeige Kategoriename als <code>kategorie</code>, Produktname als <code>produkt</code> und <code>preis</code> aller jeweils teuersten Produkte. Nutze eine korrelierte Unterabfrage und sortiere nach Kategorie und Produktname.',
+   sql:'SELECT k.name AS kategorie, p.name AS produkt, p.preis FROM produkte p INNER JOIN kategorien k ON k.id = p.kategorie_id WHERE p.preis = (SELECT MAX(p2.preis) FROM produkte p2 WHERE p2.kategorie_id = p.kategorie_id) ORDER BY kategorie, produkt',
+   hints:['Die innere Abfrage berechnet das Maximum nur für die Kategorie der äußeren Zeile.','Verbinde dafür <code>p2.kategorie_id</code> mit <code>p.kategorie_id</code>.','Der Gleichheitsvergleich lässt auch geteilte erste Plätze zu.'],
+   tags:['Korrelierte Unterabfrage','MAX','JOIN']},
+
+  {id:56,lv:5,xp:170,title:'Kunden über dem Umsatzdurchschnitt',tables:['kunden','bestellungen','bestellpositionen'],
+   desc:'Berechne in einer CTE den <code>gesamtumsatz</code> jedes Kunden einschließlich 0. Zeige <code>vorname</code>, <code>nachname</code> und <code>gesamtumsatz</code> nur für Kunden über dem Durchschnitt aller Kunden. Sortiere absteigend, dann nach Kunden-ID.',
+   sql:'WITH kundenumsatz AS (SELECT k.id, k.vorname, k.nachname, COALESCE(ROUND(SUM(bp.menge * bp.einzelpreis), 2), 0) AS gesamtumsatz FROM kunden k LEFT JOIN bestellungen b ON b.kunden_id = k.id LEFT JOIN bestellpositionen bp ON bp.bestellung_id = b.id GROUP BY k.id, k.vorname, k.nachname) SELECT vorname, nachname, gesamtumsatz FROM kundenumsatz WHERE gesamtumsatz > (SELECT AVG(gesamtumsatz) FROM kundenumsatz) ORDER BY gesamtumsatz DESC, id',
+   hints:['Die CTE muss zunächst eine Zeile pro Kunde erzeugen.','Eine skalare Unterabfrage kann den Durchschnitt der CTE berechnen.','Filtere den Umsatz erst in der äußeren Abfrage.'],
+   tags:['CTE','Subquery','AVG','LEFT JOIN']},
+
+  {id:57,lv:5,xp:145,title:'UPDATE: Offene Bestellungen versenden',tables:['bestellungen'],
+   desc:"Setze den Status aller offenen Bestellungen auf 'versendet'. Die Prüfung zeigt <code>id</code> und <code>status</code> der Bestellungen 7 und 8.",
+   isDML:true,
+   command:'UPDATE',
+   solution:"UPDATE bestellungen SET status = 'versendet' WHERE status = 'offen'",
+   verifySQL:'SELECT id, status FROM bestellungen WHERE id IN (7, 8) ORDER BY id',
+   expectedVerify:[[7,'versendet'],[8,'versendet']],
+   hints:['Ändere die Spalte <code>status</code> mit SET.','Begrenze die Änderung mit <code>WHERE status = \'offen\'</code>.'],
+   tags:['UPDATE','SET','WHERE']},
+
+  {id:58,lv:5,xp:145,title:'INSERT: Neues Produkt anlegen',tables:['produkte','kategorien'],
+   desc:"Füge das Produkt 'Dockingstation USB-C' in Kategorie 4 ein. Preis: 159.90, Lagerbestand: 30, Lieferant: 'ConnectPro'. Lass die ID automatisch vergeben.",
+   isDML:true,
+   command:'INSERT',
+   solution:"INSERT INTO produkte (name, kategorie_id, preis, lagerbestand, lieferant) VALUES ('Dockingstation USB-C', 4, 159.90, 30, 'ConnectPro')",
+   verifySQL:"SELECT name, kategorie_id, preis, lagerbestand, lieferant FROM produkte WHERE name = 'Dockingstation USB-C'",
+   expectedVerify:[['Dockingstation USB-C',4,159.9,30,'ConnectPro']],
+   hints:['Gib die fünf geforderten Spalten explizit in <code>INSERT INTO (...)</code> an.','Die Werte müssen in derselben Reihenfolge hinter <code>VALUES</code> stehen.','Textwerte benötigen Anführungszeichen, Zahlen nicht.'],
+   tags:['INSERT INTO','VALUES','Fremdschlüssel']},
+
+  {id:59,lv:5,xp:180,title:'Rekursive CTE: Organisationstiefe',tables:['mitarbeiter'],
+   desc:'Erzeuge die Hierarchie der Mitarbeiter ab der Person ohne Vorgesetzten. Zeige <code>id</code>, den vollständigen Namen als <code>mitarbeiter</code> und die Hierarchiestufe als <code>tiefe</code> (Wurzel = 0). Sortiere nach Tiefe und ID.',
+   sql:"WITH RECURSIVE organisation AS (SELECT id, CONCAT(vorname, ' ', nachname) AS mitarbeiter, 0 AS tiefe FROM mitarbeiter WHERE vorgesetzter_id IS NULL UNION ALL SELECT m.id, CONCAT(m.vorname, ' ', m.nachname) AS mitarbeiter, o.tiefe + 1 FROM mitarbeiter m INNER JOIN organisation o ON m.vorgesetzter_id = o.id) SELECT id, mitarbeiter, tiefe FROM organisation ORDER BY tiefe, id",
+   hints:['Der Anker der CTE wählt die Person ohne Vorgesetzten und setzt Tiefe 0.','Der rekursive Teil verbindet Mitarbeiter mit der jeweils vorherigen Hierarchiestufe.','Erhöhe <code>tiefe</code> im rekursiven Teil um 1.'],
+   tags:['WITH RECURSIVE','Hierarchie','Self-Referenz']}
 ];
 
 // ── Game State ────────────────────────────────────────────────
-const S={cur:0,done:new Set(),hints:{},xp:0,streak:0,SQL:null};
+const STORAGE_KEY='sql-quest-state-v2';
+const S={cur:0,done:new Set(),hints:{},drafts:{},xp:0,streak:0,SQL:null};
 const LV_LABEL=['','Grundlagen','Filtern','Aggregation','JOINs','Prüfungsniveau'];
 const LV_CSS=['','lv1','lv2','lv3','lv4','lv5'];
 const XP_LEVELS=[{n:'Azubi',max:200},{n:'Junior Dev',max:500},{n:'Entwickler',max:900},{n:'Senior',max:1400},{n:'Prüfungsreif',max:9999}];
 function getXpTier(){return XP_LEVELS.find(l=>S.xp<l.max)||XP_LEVELS.at(-1);}
 
+function restoreState(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(!saved||typeof saved!=='object')return;
+    const validIds=new Set(T.map(t=>t.id));
+    S.done=new Set(Array.isArray(saved.done)?saved.done.filter(id=>validIds.has(id)):[]);
+    const savedIndex=T.findIndex(t=>t.id===saved.taskId);
+    S.cur=savedIndex>=0?savedIndex:(Number.isInteger(saved.cur)?Math.min(Math.max(saved.cur,0),T.length-1):0);
+    S.streak=Number.isInteger(saved.streak)&&saved.streak>=0?saved.streak:0;
+    if(saved.hints&&typeof saved.hints==='object'){
+      for(const t of T){
+        const count=Number(saved.hints[t.id]);
+        if(Number.isInteger(count)&&count>0)S.hints[t.id]=Math.min(count,t.hints.length);
+      }
+    }
+    if(saved.drafts&&typeof saved.drafts==='object'){
+      for(const t of T){
+        const draft=saved.drafts[t.id];
+        if(typeof draft==='string'&&draft.length<=20000)S.drafts[t.id]=draft;
+      }
+    }
+    S.xp=T.filter(t=>S.done.has(t.id)).reduce((sum,t)=>sum+t.xp,0);
+  }catch(_){/* localStorage kann im privaten Modus gesperrt sein */}
+}
+
+function persistState(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      cur:S.cur,taskId:T[S.cur]?.id,done:[...S.done],hints:S.hints,drafts:S.drafts,streak:S.streak
+    }));
+  }catch(_){/* Lernen funktioniert auch ohne lokale Speicherung */}
+}
+
 // ── DB helpers ────────────────────────────────────────────────
 function freshDb(){
   const db=new S.SQL.Database();
+  db.run('PRAGMA foreign_keys = ON');
   db.run(SCHEMA_SQL);
   db.run(DATA_SQL);
   // MySQL-Kompatibilität: CONCAT() als User-Defined Function
-  db.create_function('CONCAT', function() {
-    return Array.from(arguments).map(v=>v===null?'':String(v)).join('');
+  db.create_function('CONCAT', function(a,b,c) {
+    const values=[a,b,c];
+    return values.some(v=>v==null)?null:values.map(String).join('');
   });
   // MySQL: IFNULL ist in SQLite bereits vorhanden; GROUP_CONCAT ebenfalls
   return db;
@@ -516,34 +690,89 @@ function freshDb(){
 function runQ(sql){
   const db=freshDb();
   try{
+    db.run('PRAGMA query_only = ON');
     const r=db.exec(sql.trim());
     if(!r.length)return{cols:[],rows:[],n:0};
     return{cols:r[0].columns,rows:r[0].values,n:r[0].values.length};
   }catch(e){return{err:e.message};}
+  finally{db.close();}
 }
 function runDML(userSql,verifySql){
   const db=freshDb();
   try{
+    db.run('BEGIN');
     db.run(userSql.trim());
     const r=db.exec(verifySql);
     if(!r.length)return{cols:[],rows:[]};
     return{cols:r[0].columns,rows:r[0].values};
   }catch(e){return{err:e.message};}
+  finally{
+    try{db.run('ROLLBACK');}catch(_){}
+    db.close();
+  }
 }
+function valueKey(v){
+  if(v===null)return['null'];
+  if(typeof v==='number')return['number',Number.isFinite(v)?Number(v.toPrecision(12)):String(v)];
+  return[typeof v,String(v)];
+}
+function rowKey(row){return JSON.stringify(row.map(valueKey));}
 function cmpResults(exp,act,ordered){
   if(exp.err||act.err)return false;
   if(exp.rows.length!==act.rows.length)return false;
   if(exp.cols.length!==act.cols.length)return false;
-  const ser=r=>r.map(v=>v===null?'__N__':String(v).trim()).join('|~|');
-  if(ordered)return exp.rows.every((r,i)=>ser(r)===ser(act.rows[i]));
-  return [...exp.rows].map(ser).sort().join('\n')===[...act.rows].map(ser).sort().join('\n');
+  if(!exp.cols.every((c,i)=>String(c).trim().toLowerCase()===String(act.cols[i]).trim().toLowerCase()))return false;
+  if(ordered)return exp.rows.every((r,i)=>rowKey(r)===rowKey(act.rows[i]));
+  return JSON.stringify(exp.rows.map(rowKey).sort())===JSON.stringify(act.rows.map(rowKey).sort());
 }
 function cmpVerify(exp,act){
   if(act.err)return false;
   if(exp.length!==act.rows.length)return false;
-  for(let i=0;i<exp.length;i++)for(let j=0;j<exp[i].length;j++)
-    if(String(exp[i][j])!==String(act.rows[i][j]))return false;
-  return true;
+  return exp.every((row,i)=>row.length===act.rows[i].length&&rowKey(row)===rowKey(act.rows[i]));
+}
+
+function splitSqlStatements(sql){
+  const statements=[];
+  let current='',quote=null,lineComment=false,blockComment=false;
+  for(let i=0;i<sql.length;i++){
+    const c=sql[i],next=sql[i+1];
+    if(lineComment){if(c==='\n'){lineComment=false;current+='\n';}continue;}
+    if(blockComment){if(c==='*'&&next==='/'){blockComment=false;i++;current+=' ';}continue;}
+    if(quote){
+      current+=c;
+      if(quote===']'&&c===']'){quote=null;continue;}
+      if(c===quote){
+        if(next===quote&&quote!==']'){current+=next;i++;}
+        else quote=null;
+      }
+      continue;
+    }
+    if(c==='-'&&next==='-'){lineComment=true;i++;continue;}
+    if(c==='/'&&next==='*'){blockComment=true;i++;continue;}
+    if(c==="'"||c==='"'||c==='`'){quote=c;current+=c;continue;}
+    if(c==='['){quote=']';current+=c;continue;}
+    if(c===';'){
+      if(current.trim())statements.push(current.trim());
+      current='';
+      continue;
+    }
+    current+=c;
+  }
+  if(current.trim())statements.push(current.trim());
+  return statements;
+}
+
+function validateSubmission(sql,task){
+  const statements=splitSqlStatements(sql);
+  if(statements.length!==1)return{err:'Bitte führe genau eine SQL-Anweisung pro Versuch aus.'};
+  const statement=statements[0];
+  const keyword=(statement.match(/^\s*([a-z]+)/i)||[])[1]?.toUpperCase();
+  if(task.isDML){
+    if(keyword!==task.command)return{err:`Diese Aufgabe erwartet eine ${task.command}-Anweisung.`};
+  }else if(keyword!=='SELECT'&&keyword!=='WITH'){
+    return{err:'Diese Aufgabe erwartet eine SELECT-Abfrage oder eine SELECT-Abfrage mit WITH.'};
+  }
+  return{sql:statement};
 }
 
 // ── Render ────────────────────────────────────────────────────
@@ -557,8 +786,20 @@ function render(){
     `<div id="p-prog" class="panel">${renderProgress()}</div>`;
   const ta=document.getElementById('sql-input');
   if(ta){
+    ta.value=S.drafts[T[S.cur].id]||'';
+    ta.addEventListener('input',e=>{
+      S.drafts[T[S.cur].id]=e.target.value;
+      persistState();
+    });
     ta.addEventListener('keydown',e=>{
-      if(e.key==='Tab'){e.preventDefault();const s=e.target.selectionStart;e.target.value=e.target.value.slice(0,s)+'  '+e.target.value.slice(e.target.selectionEnd);e.target.selectionStart=e.target.selectionEnd=s+2;}
+      if(e.key==='Tab'){
+        e.preventDefault();
+        const s=e.target.selectionStart;
+        e.target.value=e.target.value.slice(0,s)+'  '+e.target.value.slice(e.target.selectionEnd);
+        e.target.selectionStart=e.target.selectionEnd=s+2;
+        S.drafts[T[S.cur].id]=e.target.value;
+        persistState();
+      }
       if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))runQ2();
     });
   }
@@ -569,24 +810,24 @@ function renderHUD(){
   const prev=XP_LEVELS[Math.max(0,XP_LEVELS.indexOf(tier)-1)];
   const base=prev?prev.max:0;
   const pct=Math.min(100,((S.xp-base)/(tier.max-base)*100)||0);
-  return`<div class="hud">
+  return`<header class="hud" aria-label="Lernfortschritt">
     <span class="hud-title">SQL Quest</span>
-    <span class="stat"><strong>${tier.n}</strong></span>
+    <span class="stat"><strong id="tier-name">${tier.n}</strong></span>
     <div class="xp-wrap">
-      <div class="xp-top"><span>${S.xp} XP</span><span>${tier.max===9999?'MAX':tier.max+' XP'}</span></div>
-      <div class="xp-bg"><div class="xp-fill" id="xp-fill" style="width:${pct.toFixed(0)}%"></div></div>
+      <div class="xp-top"><span id="xp-current">${S.xp} XP</span><span id="xp-target">${tier.max===9999?'MAX':tier.max+' XP'}</span></div>
+      <div class="xp-bg" role="progressbar" aria-label="XP-Fortschritt" aria-valuemin="${base}" aria-valuemax="${tier.max}" aria-valuenow="${S.xp}"><div class="xp-fill" id="xp-fill" style="width:${pct.toFixed(0)}%"></div></div>
     </div>
-    <span class="stat">🔥 <strong>${S.streak}</strong></span>
-    <span class="stat">✓ <strong>${S.done.size}</strong>/${T.length}</span>
-  </div>`;
+    <span class="stat"><span aria-hidden="true">🔥</span><span class="sr-only">Serie:</span> <strong id="streak-count">${S.streak}</strong></span>
+    <span class="stat"><span aria-hidden="true">✓</span><span class="sr-only">Gelöst:</span> <strong id="done-count">${S.done.size}</strong>/${T.length}</span>
+  </header>`;
 }
 
 function renderNav(){
-  return`<div class="nav">
-    <button class="nav-btn active" id="nav-task" onclick="switchP('task')">📝 Aufgabe</button>
-    <button class="nav-btn" id="nav-schema" onclick="switchP('schema')">🗂 Schema</button>
-    <button class="nav-btn" id="nav-prog" onclick="switchP('prog')">📊 Fortschritt</button>
-  </div>`;
+  return`<nav class="nav" aria-label="SQL-Lernbereiche">
+    <button type="button" class="nav-btn active" id="nav-task" aria-controls="p-task" aria-pressed="true" onclick="switchP('task')">📝 Aufgabe</button>
+    <button type="button" class="nav-btn" id="nav-schema" aria-controls="p-schema" aria-pressed="false" onclick="switchP('schema')">🗂 Schema</button>
+    <button type="button" class="nav-btn" id="nav-prog" aria-controls="p-prog" aria-pressed="false" onclick="switchP('prog')">📊 Fortschritt</button>
+  </nav>`;
 }
 
 function renderTables(t){
@@ -598,10 +839,10 @@ function renderTables(t){
     return`<div class="tt-tbl"><div class="tt-tbl-name">${tname}</div>${rows}</div>`;
   }).join('');
   return`<div class="task-tables">
-    <div class="tt-label" onclick="toggleTables(${t.id})">
+    <button type="button" class="tt-label" aria-expanded="${open}" aria-controls="tt-grid-${t.id}" onclick="toggleTables(${t.id})">
       Benötigte Tabellen
       <span class="tt-toggle" id="tt-toggle-${t.id}">${open?'▲ einklappen':'▼ ausklappen'}</span>
-    </div>
+    </button>
     <div class="tt-grid" id="tt-grid-${t.id}" style="display:${open?'flex':'none'}">${grid}</div>
   </div>`;
 }
@@ -613,6 +854,7 @@ function toggleTables(tid){
   const open=grid.style.display==='none';
   grid.style.display=open?'flex':'none';
   lbl.textContent=open?'▲ einklappen':'▼ ausklappen';
+  lbl.closest('button')?.setAttribute('aria-expanded',String(open));
   TT_OPEN[tid]=open;
 }
 
@@ -624,8 +866,8 @@ function renderTask(){
   const hintItems=t.hints.slice(0,hc).map((h,i)=>
     `<div class="hint-item"><span class="hint-n">💡 ${i+1}</span><span>${h}</span></div>`
   ).join('');
-  const prevBtn=S.cur>0?`<button class="btn-nav" onclick="goTo(${S.cur-1})">← Zurück</button>`:'';
-  const nextBtn=S.cur<T.length-1?`<button class="btn-nav" onclick="goTo(${S.cur+1})">Überspringen →</button>`:'';
+  const prevBtn=S.cur>0?`<button type="button" class="btn-nav" onclick="goTo(${S.cur-1})">← Zurück</button>`:'';
+  const nextBtn=S.cur<T.length-1?`<button type="button" class="btn-nav" onclick="goTo(${S.cur+1})">Überspringen →</button>`:'';
   return`
   <div class="task-card">
     <div class="task-meta">
@@ -633,29 +875,29 @@ function renderTask(){
       <span class="task-num">Aufgabe ${S.cur+1} / ${T.length}</span>
       ${done?'<span class="done-mark">✓ Gelöst</span>':''}
     </div>
-    <div class="task-title">${t.title}</div>
+    <h1 class="task-title">${t.title}</h1>
     <div class="task-desc">${t.desc}</div>
     <div class="task-tags">${tags}</div>
   </div>
   ${renderTables(t)}
   <div class="editor-wrap">
-    <div class="editor-label">SQL-Eingabe · Strg+Enter = Ausführen</div>
-    <textarea id="sql-input" spellcheck="false" placeholder="SELECT ..."></textarea>
+    <label class="editor-label" for="sql-input">SQL-Eingabe · Strg+Enter = Ausführen</label>
+    <textarea id="sql-input" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="sql-dialect" placeholder="${t.isDML?t.command+' ...':'SELECT ...'}"></textarea>
   </div>
   <div class="actions">
-    <button class="btn-run" onclick="runQ2()">▶ Ausführen</button>
-    <button class="btn-hint" id="hint-btn" ${hc>=t.hints.length?'disabled':''} onclick="showHint()">💡 Hinweis${hc<t.hints.length?' ('+(t.hints.length-hc)+' übrig)':' (alle gezeigt)'}</button>
-    <button class="btn-sol" onclick="showSolution()">👁 Lösung</button>
+    <button type="button" class="btn-run" onclick="runQ2()">▶ Ausführen</button>
+    <button type="button" class="btn-hint" id="hint-btn" ${hc>=t.hints.length?'disabled':''} onclick="showHint()">💡 Hinweis${hc<t.hints.length?' ('+(t.hints.length-hc)+' übrig)':' (alle gezeigt)'}</button>
+    <button type="button" class="btn-sol" onclick="showSolution()">👁 Lösung</button>
     <span class="hint-left">${prevBtn} ${nextBtn}</span>
-    <span class="mysql-badge">MySQL-Syntax</span>
+    <span class="mysql-badge" id="sql-dialect">SQLite-Engine · MySQL-nah</span>
   </div>
   <div class="hints-area" id="hints-area">${hintItems}</div>
-  <div class="result-area" id="result-area"><div class="r-empty">Ergebnis erscheint hier · Strg+Enter zum Ausführen</div></div>`;
+  <div class="result-area" id="result-area" role="status" aria-live="polite"><div class="r-empty">Ergebnis erscheint hier · Strg+Enter zum Ausführen</div></div>`;
 }
 
 function renderSchema(){
   return`<div class="schema-panel">
-  <div class="s-rel">kunden.id ← bestellungen.kunden_id → bestellpositionen.bestellung_id → produkte.id → kategorien.id<br>mitarbeiter.vorgesetzter_id → mitarbeiter.id &nbsp;(Self-Referenz)</div>
+  <div class="s-rel">kunden.id ← bestellungen.kunden_id<br>bestellungen.id ← bestellpositionen.bestellung_id<br>produkte.id ← bestellpositionen.produkt_id<br>kategorien.id ← produkte.kategorie_id<br>mitarbeiter.id ← mitarbeiter.vorgesetzter_id &nbsp;(Self-Referenz)</div>
   <div class="s-tbl"><div class="s-tbl-name">kunden</div><div class="s-col"><span class="c-n">id</span><span class="c-t">INTEGER</span><span class="c-x">PK</span></div><div class="s-col"><span class="c-n">vorname</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">nachname</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">email</span><span class="c-t">TEXT</span><span class="c-x">kann NULL sein</span></div><div class="s-col"><span class="c-n">stadt</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">plz</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">land</span><span class="c-t">TEXT</span><span class="c-x">default: 'Deutschland'</span></div><div class="s-col"><span class="c-n">registriert_am</span><span class="c-t">TEXT</span><span class="c-x">YYYY-MM-DD</span></div><div class="s-col"><span class="c-n">aktiv</span><span class="c-t">INTEGER</span><span class="c-x">0 oder 1</span></div></div>
   <div class="s-tbl"><div class="s-tbl-name">kategorien</div><div class="s-col"><span class="c-n">id</span><span class="c-t">INTEGER</span><span class="c-x">PK</span></div><div class="s-col"><span class="c-n">name</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">beschreibung</span><span class="c-t">TEXT</span></div></div>
   <div class="s-tbl"><div class="s-tbl-name">produkte</div><div class="s-col"><span class="c-n">id</span><span class="c-t">INTEGER</span><span class="c-x">PK</span></div><div class="s-col"><span class="c-n">name</span><span class="c-t">TEXT</span></div><div class="s-col"><span class="c-n">kategorie_id</span><span class="c-t">INTEGER</span><span class="c-x">FK → kategorien.id</span></div><div class="s-col"><span class="c-n">preis</span><span class="c-t">REAL</span></div><div class="s-col"><span class="c-n">lagerbestand</span><span class="c-t">INTEGER</span></div><div class="s-col"><span class="c-n">lieferant</span><span class="c-t">TEXT</span></div></div>
@@ -675,7 +917,7 @@ function renderProgress(){
       const done=S.done.has(t.id),curr=S.cur===idx;
       const dc=done?'dot-done':curr?'dot-curr':'dot-todo';
       const di=done?'✓':curr?'→':'○';
-      h+=`<div class="p-item${curr?' curr':''}" onclick="goTo(${idx})"><div class="p-dot ${dc}">${di}</div><span class="p-name">${t.title}</span><span class="p-xp-badge">+${t.xp} XP</span></div>`;
+      h+=`<button type="button" class="p-item${curr?' curr':''}" onclick="goTo(${idx})" ${curr?'aria-current="step"':''}><span class="p-dot ${dc}" aria-hidden="true">${di}</span><span class="p-name">${t.title}</span><span class="p-xp-badge">+${t.xp} XP</span></button>`;
     });
     h+='</div>';
   }
@@ -686,7 +928,7 @@ function buildTable(r){
   if(!r.cols||!r.cols.length)return'';
   const ths=r.cols.map(c=>`<th>${esc(c)}</th>`).join('');
   const trs=r.rows.map(row=>'<tr>'+row.map(v=>`<td>${v===null?'<span class="null-v">NULL</span>':esc(String(v))}</td>`).join('')+'</tr>').join('');
-  return`<div class="r-table-wrap"><table class="rt"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div><div class="r-count">${r.rows.length} Zeile(n)</div>`;
+  return`<div class="r-table-wrap"><table class="rt"><caption class="sr-only">SQL-Abfrageergebnis</caption><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div><div class="r-count">${r.rows.length} Zeile(n)</div>`;
 }
 
 // ── Actions ───────────────────────────────────────────────────
@@ -694,30 +936,20 @@ function switchP(name){
   ['task','schema','prog'].forEach(n=>{
     document.getElementById('p-'+n).classList.toggle('active',n===name);
     const nb=document.getElementById('nav-'+n);
-    if(nb)nb.classList.toggle('active',n===name);
+    if(nb){nb.classList.toggle('active',n===name);nb.setAttribute('aria-pressed',String(n===name));}
   });
 }
 
 function goTo(idx){
   if(idx<0||idx>=T.length)return;
-  S.cur=idx;render();
+  S.cur=idx;persistState();render();
 }
 
 function showSolution(){
   const t=T[S.cur];
-  let sol='';
-  if(t.isDML){
-    const dmlMap={
-      21:"UPDATE produkte SET lagerbestand = lagerbestand - 10 WHERE id = 3",
-      22:"DELETE FROM bestellungen WHERE status = 'storniert'",
-      39:"INSERT INTO kunden (vorname, nachname, email, stadt, plz, aktiv) VALUES ('Max', 'Mustermann', 'max@test.de', 'Frankfurt', '60311', 1)"
-    };
-    sol=dmlMap[t.id]||'-- keine Musterlösung verfügbar';
-  }else{
-    sol=t.sql||'';
-  }
+  const sol=t.solution||t.sql||'-- keine Musterlösung verfügbar';
   const ta=document.getElementById('sql-input');
-  if(ta){ta.value=sol;}
+  if(ta){ta.value=sol;ta.focus();S.drafts[t.id]=sol;persistState();}
   const ra=document.getElementById('result-area');
   if(ra){ra.innerHTML='<div class="r-wrong">⚠ Lösung eingeblendet – versuche sie zu verstehen, bevor du sie ausführst!</div>';}
 }
@@ -740,39 +972,70 @@ function showHint(){
     btn.textContent=`💡 Hinweis${left>0?' ('+left+' übrig)':' (alle gezeigt)'}`;
     if(left===0)btn.disabled=true;
   }
+  persistState();
+}
+
+function updateHUD(){
+  const tier=getXpTier();
+  const prev=XP_LEVELS[Math.max(0,XP_LEVELS.indexOf(tier)-1)];
+  const base=prev?prev.max:0;
+  const pct=Math.min(100,((S.xp-base)/(tier.max-base)*100)||0);
+  const tierName=document.getElementById('tier-name');
+  const xpCurrent=document.getElementById('xp-current');
+  const xpTarget=document.getElementById('xp-target');
+  const streak=document.getElementById('streak-count');
+  const done=document.getElementById('done-count');
+  const fill=document.getElementById('xp-fill');
+  const progress=fill?.parentElement;
+  if(tierName)tierName.textContent=tier.n;
+  if(xpCurrent)xpCurrent.textContent=`${S.xp} XP`;
+  if(xpTarget)xpTarget.textContent=tier.max===9999?'MAX':`${tier.max} XP`;
+  if(streak)streak.textContent=String(S.streak);
+  if(done)done.textContent=String(S.done.size);
+  if(fill)fill.style.width=`${pct.toFixed(0)}%`;
+  if(progress){
+    progress.setAttribute('aria-valuemin',String(base));
+    progress.setAttribute('aria-valuemax',String(tier.max));
+    progress.setAttribute('aria-valuenow',String(S.xp));
+  }
+}
+
+function registerFailedAttempt(){
+  if(S.streak!==0){S.streak=0;persistState();updateHUD();}
 }
 
 function runQ2(){
   const t=T[S.cur];
   const sql=document.getElementById('sql-input')?.value?.trim();
-  if(!sql)return;
   const ra=document.getElementById('result-area');
   if(!ra)return;
+  if(!sql){ra.innerHTML='<div class="r-error">Gib zuerst eine SQL-Anweisung ein.</div>';return;}
+  const validation=validateSubmission(sql,t);
+  if(validation.err){registerFailedAttempt();ra.innerHTML=`<div class="r-error">${esc(validation.err)}</div>`;return;}
 
   let ok=false,userR;
   if(t.isDML){
-    userR=runDML(sql,t.verifySQL);
-    if(userR.err){ra.innerHTML=`<div class="r-error">SQL-Fehler:\n${esc(userR.err)}</div>`;return;}
+    userR=runDML(validation.sql,t.verifySQL);
+    if(userR.err){registerFailedAttempt();ra.innerHTML=`<div class="r-error">SQL-Fehler:\n${esc(userR.err)}</div>`;return;}
     ok=cmpVerify(t.expectedVerify,userR);
   }else{
-    userR=runQ(sql);
-    if(userR.err){ra.innerHTML=`<div class="r-error">SQL-Fehler:\n${esc(userR.err)}\n\nTipp: Überprüfe Tabellennamen, Spaltennamen und Anführungszeichen.</div>`;return;}
+    userR=runQ(validation.sql);
+    if(userR.err){registerFailedAttempt();ra.innerHTML=`<div class="r-error">SQL-Fehler:\n${esc(userR.err)}\n\nTipp: Überprüfe Tabellennamen, Spaltennamen und Anführungszeichen.</div>`;return;}
     const expR=runQ(t.sql);
-    ok=cmpResults(expR,userR,t.checkOrder||false);
+    if(expR.err){ra.innerHTML='<div class="r-error">Diese Aufgabe ist momentan fehlerhaft konfiguriert.</div>';console.error(expR.err);return;}
+    ok=cmpResults(expR,userR,t.checkOrder??/\bORDER\s+BY\b/i.test(t.sql));
   }
 
   const tbl=buildTable(userR);
   if(ok&&!S.done.has(t.id)){
     S.done.add(t.id);S.xp+=t.xp;S.streak++;
-    const nextBtn=S.cur<T.length-1?`<button class="btn-next" onclick="goTo(${S.cur+1})">Nächste Aufgabe →</button>`:'';
+    persistState();updateHUD();
+    const nextBtn=S.cur<T.length-1?`<button type="button" class="btn-next" onclick="goTo(${S.cur+1})">Nächste Aufgabe →</button>`:'';
     ra.innerHTML=`<div class="r-ok">✓ Richtig! +${t.xp} XP verdient${S.streak>=3?' · 🔥 '+S.streak+'er Streak!':''}!</div>${nextBtn}${tbl}`;
-    const fill=document.getElementById('xp-fill');
-    if(fill){const tier=getXpTier();const prev=XP_LEVELS[Math.max(0,XP_LEVELS.indexOf(tier)-1)];const base=prev?prev.max:0;fill.style.width=Math.min(100,((S.xp-base)/(tier.max-base)*100)).toFixed(0)+'%';}
-    const statXp=document.querySelectorAll('.stat');
-    if(statXp.length>=4)statXp[3].innerHTML=`✓ <strong>${S.done.size}</strong>/${T.length}`;
   }else if(ok){
     ra.innerHTML=`<div class="r-ok">✓ Bereits gelöst – Ergebnis stimmt!</div>${tbl}`;
   }else{
+    registerFailedAttempt();
     const hc=S.hints[t.id]||0;
     const rowMsg=!t.isDML&&userR.n!==undefined?` (dein Ergebnis: ${userR.n} Zeile(n), ${userR.cols.length} Spalte(n))`:'';
     const hintMsg=hc<t.hints.length?`Nicht ganz richtig${rowMsg}. Klicke 💡 für einen Hinweis.`:`Noch nicht korrekt${rowMsg}. Überprüfe Filterung, Spaltenwahl und Reihenfolge.`;
@@ -781,22 +1044,63 @@ function runQ2(){
 }
 
 // ── Init ──────────────────────────────────────────────────────
+const SQL_JS_SOURCES=[
+  {
+    script:'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.1/sql-wasm.js',
+    wasm:'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.1/sql-wasm.wasm',
+    integrity:'sha384-4BFYB3flXPr2Z7nY58MEovqPlVDyWWBDlHTclbOjtPii317X+bu9vsbPUCkb//6+'
+  },
+  {
+    script:'https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/sql-wasm.js',
+    wasm:'https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/sql-wasm.wasm',
+    integrity:'sha384-4BFYB3flXPr2Z7nY58MEovqPlVDyWWBDlHTclbOjtPii317X+bu9vsbPUCkb//6+'
+  }
+];
+
+function loadSqlScript(source){
+  return new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    const timeout=setTimeout(()=>{script.remove();reject(new Error('Zeitüberschreitung beim Laden der SQL-Engine'));},15000);
+    script.src=source.script;
+    script.integrity=source.integrity;
+    script.crossOrigin='anonymous';
+    script.referrerPolicy='no-referrer';
+    script.onload=()=>{clearTimeout(timeout);resolve();};
+    script.onerror=()=>{clearTimeout(timeout);script.remove();reject(new Error('SQL-Engine konnte nicht geladen werden'));};
+    document.head.appendChild(script);
+  });
+}
+
+async function loadSqlEngine(){
+  let lastError;
+  for(const source of SQL_JS_SOURCES){
+    try{
+      await loadSqlScript(source);
+      if(typeof window.initSqlJs!=='function')throw new Error('Ungültiges SQL-Engine-Skript');
+      return await window.initSqlJs({locateFile:()=>source.wasm});
+    }catch(error){lastError=error;}
+  }
+  throw lastError||new Error('SQL-Engine ist nicht verfügbar');
+}
+
 async function init(){
   try{
-    S.SQL=await initSqlJs({locateFile:f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`});
+    restoreState();
+    S.SQL=await loadSqlEngine();
     render();
   }catch(e){
     document.getElementById('app').innerHTML=`<div style="padding:24px;color:#8b949e;font-size:13px">
       <div style="font-size:15px;font-weight:600;color:#f0f6fc;margin-bottom:8px">SQL-Engine konnte nicht geladen werden</div>
       <div>Fehler: ${esc(e.message)}</div>
-      <div style="margin-top:8px">Stelle sicher, dass cdnjs.cloudflare.com erreichbar ist und öffne die Datei erneut.</div>
+      <div style="margin-top:8px">Prüfe die Netzwerkverbindung und lade die Seite erneut.</div>
     </div>`;
   }
 }
 init();
 </script>
 <script>window.APP_BASE_PATH = '../..';</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
 <script src="../../assets/js/auth.js"></script>
 <script src="../../assets/js/protect.js" defer></script>
 <script src="../../assets/js/nav.js" defer></script>

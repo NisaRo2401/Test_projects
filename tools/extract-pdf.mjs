@@ -50,7 +50,11 @@ Optional:
   process.exit(values.help ? 0 : 1);
 }
 
-const SCALE = Number(values.scale) || 1.5;
+const SCALE = Number(values.scale);
+if (!Number.isFinite(SCALE) || SCALE < 0.5 || SCALE > 4) {
+  console.error('--scale muss eine Zahl zwischen 0.5 und 4 sein.');
+  process.exit(1);
+}
 
 async function listPdfs(dir) {
   const entries = await readdir(dir);
@@ -231,6 +235,7 @@ async function main() {
   console.log(`\nNächster Schritt: Claude Code bitten, die PNGs aller extracted.json multimodal zu lesen`);
   console.log(`und daraus <name>.questions.json gemäß tools/prompts/system.md zu erzeugen. Dann:`);
   console.log(`  node insert-questions.mjs --dir ${outDir}`);
+  if (results.some(result => result.error)) process.exitCode = 1;
 }
 
 main().catch(err => {

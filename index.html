@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Projects Hub</title>
+  <meta name="description" content="Interaktive Lernplattform zur Vorbereitung auf die IHK-Prüfung für Fachinformatiker Anwendungsentwicklung.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="dark">
+  <title>FIAE Lernhub</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/css/variables.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/components.css">
@@ -115,18 +119,29 @@
     .footer a {
       color: var(--color-accent-text);
     }
+
+    .auth-status {
+      min-height: 1.4em;
+      text-align: right;
+    }
+
+    @media (max-width: 560px) {
+      body { padding: var(--space-4); }
+      .auth-bar { width: 100%; justify-content: space-between; }
+      .auth-status { text-align: left; }
+    }
   </style>
 </head>
 <body>
   <main class="shell">
     <header class="header">
       <div class="header-title">
-        <h1>Test Projects Hub</h1>
-        <p>Alle Lernmodule auf einen Blick. Klicke auf eine Karte, um das gewünschte Modul zu öffnen.</p>
+        <h1>FIAE Lernhub</h1>
+        <p>Interaktive Übungen für Prüfung, Programmierung, Datenbanken und UML – mit gespeichertem Lernfortschritt.</p>
       </div>
       <div class="auth-bar">
-        <span id="userStatus">Lade...</span>
-        <button class="btn btn-primary" id="logoutBtn">Logout</button>
+        <span class="auth-status" id="userStatus" aria-live="polite">Sitzung wird geprüft …</span>
+        <button class="btn btn-primary" id="logoutBtn" type="button">Abmelden</button>
       </div>
     </header>
 
@@ -142,14 +157,14 @@
       <article class="module-card">
         <span class="module-tag">Programmierung</span>
         <h2>Pseudocode Trainer</h2>
-        <p>Interaktives Trainingsmodul für IHK-Pseudocode. 10 progressive Aufgaben mit Echtzeit-Feedback.</p>
+        <p>18 progressive IHK-Aufgaben mit Strukturprüfung, automatischer Entwurfsspeicherung und direktem Feedback.</p>
         <a class="btn btn-primary" href="modules/pseudocode-trainer/">Öffnen</a>
       </article>
 
       <article class="module-card">
         <span class="module-tag">Datenbanken</span>
         <h2>SQL Learner</h2>
-        <p>30+ SQL-Übungen mit in-browser SQLite-Engine, XP-System und schrittweisen Hinweisen.</p>
+        <p>59 SQL-Übungen mit echter SQLite-Ausführung im Browser, XP-System und direktem Ergebnisvergleich.</p>
         <a class="btn btn-primary" href="modules/sql-learner/">Öffnen</a>
       </article>
 
@@ -170,33 +185,38 @@
     </section>
 
     <footer class="footer">
-      <span>Neue Module? Einfach in <code>modules/</code> ablegen und hier verlinken.</span>
-      <a href="README.md">README</a>
-      <a href="docs/supabase-setup.sql">Supabase Setup SQL</a>
+      <span>Dein Lernfortschritt wird je nach Modul lokal oder in deinem Benutzerkonto gespeichert.</span>
     </footer>
   </main>
 
   <script>window.APP_BASE_PATH = '';</script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
   <script src="assets/js/auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         const session = await auth.protectPage();
         const status = document.getElementById('userStatus');
-        status.textContent = session?.user?.email
-          ? `Angemeldet als ${session.user.email}`
-          : 'Nicht angemeldet';
-      } catch {
-        document.getElementById('userStatus').textContent = 'Auth-Fehler';
+        if (session?.user?.email) {
+          status.textContent = `Angemeldet als ${session.user.email}`;
+        }
+      } catch (error) {
+        const status = document.getElementById('userStatus');
+        status.textContent = 'Die Sitzung konnte nicht geprüft werden.';
+        status.classList.add('status', 'error');
       }
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       try {
+        document.getElementById('logoutBtn').disabled = true;
         await auth.signOut();
       } catch (error) {
-        alert('Logout fehlgeschlagen: ' + (error.message || error));
+        const status = document.getElementById('userStatus');
+        status.textContent = 'Abmelden fehlgeschlagen. Bitte erneut versuchen.';
+        status.classList.add('status', 'error');
+        document.getElementById('logoutBtn').disabled = false;
       }
     });
   </script>

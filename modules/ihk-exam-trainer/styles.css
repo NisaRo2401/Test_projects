@@ -1,5 +1,3 @@
-@import '../../assets/css/variables.css';
-
 /* ── Shell ───────────────────────────────────────── */
 body {
   padding: var(--space-6);
@@ -29,6 +27,7 @@ body {
 .iet-view { display: none; }
 #iet-app[data-view="loading"]    .iet-view[data-view-name="loading"],
 #iet-app[data-view="empty"]      .iet-view[data-view-name="empty"],
+#iet-app[data-view="error"]      .iet-view[data-view-name="error"],
 #iet-app[data-view="home"]       .iet-view[data-view-name="home"],
 #iet-app[data-view="topics"]     .iet-view[data-view-name="topics"],
 #iet-app[data-view="question"]   .iet-view[data-view-name="question"],
@@ -44,6 +43,15 @@ body {
   color: var(--color-text-muted);
   text-align: center;
   padding: var(--space-8);
+}
+
+.iet-status {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--color-warning);
 }
 
 /* ── Overall-Progress auf Home ───────────────────── */
@@ -67,6 +75,7 @@ body {
 
 /* ── Progress Bar (wiederverwendet) ──────────────── */
 .iet-progress {
+  display: block;
   width: 100%;
   height: 10px;
   background: rgba(148, 163, 184, 0.15);
@@ -74,6 +83,7 @@ body {
   overflow: hidden;
 }
 .iet-progress-fill {
+  display: block;
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
@@ -95,6 +105,7 @@ body {
   gap: var(--space-5);
 }
 .iet-card-action {
+  width: 100%;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -104,18 +115,33 @@ body {
   transition: transform var(--transition-base), border-color var(--transition-base);
   display: flex;
   flex-direction: column;
+  color: inherit;
+  text-align: left;
   gap: var(--space-3);
 }
 .iet-card-action:hover {
   transform: translateY(-4px);
   border-color: var(--color-accent-light);
 }
-.iet-card-action h3 {
-  font-size: 1.1rem;
+.iet-card-action:focus-visible,
+.iet-topic-card:focus-visible,
+.iet-filter:focus-visible,
+.iet-pager-dot:focus-visible,
+.iet-option:has(input:focus-visible) {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 3px;
 }
-.iet-card-action p {
+.iet-card-title {
+  display: block;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.iet-card-description {
+  display: block;
   color: var(--color-text-muted);
   font-size: 0.95rem;
+  line-height: 1.6;
   flex: 1;
 }
 .iet-arrow {
@@ -174,6 +200,7 @@ body {
   gap: var(--space-4);
 }
 .iet-topic-card {
+  width: 100%;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -184,27 +211,33 @@ body {
   grid-template-columns: 1fr auto;
   align-items: center;
   transition: border-color var(--transition-base);
+  color: inherit;
+  text-align: left;
 }
 .iet-topic-card:hover { border-color: var(--color-accent-light); }
+.iet-topic-main { display: block; }
 .iet-topic-head {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
 }
-.iet-topic-head h3 { font-size: 1rem; margin: 0; }
+.iet-topic-title { font-size: 1rem; font-weight: 700; line-height: 1.25; }
 .iet-topic-stats {
+  display: block;
   color: var(--color-text-muted);
   font-size: 0.85rem;
   margin-top: 4px;
 }
 .iet-topic-pct {
+  display: block;
   font-weight: 700;
   color: var(--color-accent-light);
   min-width: 50px;
   text-align: right;
 }
 .iet-topic-bar-wrap {
+  display: block;
   grid-column: 1 / -1;
 }
 
@@ -314,14 +347,10 @@ body {
 }
 
 /* ── Leerer Zustand ─────────────────────────────── */
-.iet-empty pre {
-  background: var(--color-bg-input);
-  padding: var(--space-4);
-  border-radius: var(--radius-sm);
-  overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  margin: var(--space-4) 0;
+.iet-empty {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
 }
 
 /* ── Simulation ─────────────────────────────────── */
@@ -343,8 +372,8 @@ body {
 }
 .iet-sim-part-card:hover:not([disabled]) { border-color: var(--color-accent-light); }
 .iet-sim-part-card[disabled] { opacity: 0.4; cursor: not-allowed; }
-.iet-sim-part-card h4 { font-size: 1.05rem; }
-.iet-sim-part-card p { color: var(--color-text-muted); font-size: 0.85rem; }
+.iet-sim-part-title { display: block; font-size: 1.05rem; font-weight: 700; line-height: 1.25; }
+.iet-sim-part-detail { display: block; color: var(--color-text-muted); font-size: 0.85rem; line-height: 1.5; }
 
 .iet-sim-bar {
   display: flex;
@@ -384,6 +413,7 @@ body {
   gap: 6px;
 }
 .iet-pager-dot {
+  position: relative;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
@@ -517,3 +547,22 @@ body {
 }
 
 .iet-muted { color: var(--color-text-muted); }
+
+@media (max-width: 640px) {
+  body { padding: var(--space-4); }
+  .iet-shell { padding-top: 52px; }
+  .iet-sim-bar { align-items: flex-start; }
+  .iet-sim-counter { order: 4; width: 100%; margin-left: 0; }
+  .iet-sim-nav > .btn { flex: 1 1 120px; }
+  .iet-history-item { grid-template-columns: 1fr; }
+  .iet-history-score { font-size: 1.05rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
