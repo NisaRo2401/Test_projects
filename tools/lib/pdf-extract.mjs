@@ -48,35 +48,41 @@ export async function extractPdf(pdfPath, pageOutDir, scale = 1.5) {
     verbosity: 0,
   }).promise;
 
-  await mkdir(pageOutDir, { recursive: true });
-  const pages = [];
+  const numPages = doc.numPages;
+  try {
+    await mkdir(pageOutDir, { recursive: true });
+    const pages = [];
 
-  for (let p = 1; p <= doc.numPages; p++) {
-    const page = await doc.getPage(p);
+    for (let p = 1; p <= numPages; p++) {
+      const page = await doc.getPage(p);
+      let cc;
+      try {
+        // Text-Layer (falls vorhanden) als Bonus
+        const content = await page.getTextContent();
+        const text = content.items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
 
-    // Text-Layer (falls vorhanden) als Bonus
-    const content = await page.getTextContent();
-    const text = content.items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
+        // PNG rendern
+        const viewport = page.getViewport({ scale });
+        cc = canvasFactory.create(viewport.width, viewport.height);
+        await page.render({
+          canvasContext: cc.context,
+          viewport,
+          canvasFactory,
+        }).promise;
 
-    // PNG rendern
-    const viewport = page.getViewport({ scale });
-    const cc = canvasFactory.create(viewport.width, viewport.height);
-    await page.render({
-      canvasContext: cc.context,
-      viewport,
-      canvasFactory,
-    }).promise;
+        const pageNum = String(p).padStart(2, '0');
+        const pngPath = join(pageOutDir, `page-${pageNum}.png`);
+        const buf = cc.canvas.toBuffer('image/png');
+        await writeFile(pngPath, buf);
+        pages.push({ page: p, pngPath, text });
+      } finally {
+        if (cc) canvasFactory.destroy(cc);
+        page.cleanup();
+      }
+    }
 
-    const pageNum = String(p).padStart(2, '0');
-    const pngPath = join(pageOutDir, `page-${pageNum}.png`);
-    const buf = cc.canvas.toBuffer('image/png');
-    await writeFile(pngPath, buf);
-    canvasFactory.destroy(cc);
-
-    pages.push({ page: p, pngPath, text });
-    page.cleanup();
+    return { pages, numPages };
+  } finally {
+    await doc.destroy();
   }
-
-  await doc.destroy();
-  return { pages, numPages: doc.numPages };
 }

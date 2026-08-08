@@ -8,14 +8,16 @@ Da IHK-Prüfungs-PDFs meist **gescannt** sind (nur Bilder, kein Text-Layer), ren
 
 ```bash
 cd Test_projects/tools
-npm install
+npm ci
 cp .env.example .env
-# .env füllen mit SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+# .env füllen mit SUPABASE_URL + SUPABASE_SECRET_KEY
 ```
 
 Dazu:
 1. Im Supabase-SQL-Editor `docs/ihk-exam-schema.sql` ausführen.
-2. Storage-Bucket `ihk-diagrams` (public) manuell im Supabase-Dashboard anlegen.
+2. Das Schema legt den öffentlichen Storage-Bucket `ihk-diagrams` idempotent mit an.
+
+Bei älteren Supabase-Projekten wird alternativ `SUPABASE_SERVICE_ROLE_KEY` unterstützt. Beide Schlüsseltypen sind administrativ und dürfen niemals im Frontend oder im Git-Repository landen.
 
 ## Dateinamen-Konvention (für Auto-Meta)
 

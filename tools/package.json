@@ -6,13 +6,15 @@
   "private": true,
   "scripts": {
     "extract": "node extract-pdf.mjs",
-    "insert": "node insert-questions.mjs"
+    "ocr": "node ocr-extract.mjs",
+    "insert": "node insert-questions.mjs",
+    "check": "node --check extract-pdf.mjs && node --check ocr-extract.mjs && node --check insert-questions.mjs"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.99",
-    "@supabase/supabase-js": "^2.42.3",
-    "dotenv": "^16.4.5",
-    "pdfjs-dist": "^4.0.379",
-    "tesseract.js": "^7.0.0"
+    "@napi-rs/canvas": "0.1.100",
+    "@supabase/supabase-js": "2.112.2",
+    "dotenv": "16.6.1",
+    "pdfjs-dist": "4.10.38",
+    "tesseract.js": "7.0.0"
   }
 }

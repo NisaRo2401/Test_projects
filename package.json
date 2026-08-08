@@ -1,0 +1,14 @@
+{
+  "name": "fiae-lernhub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Statische Lernplattform für die IHK-FIAE-Prüfungsvorbereitung",
+  "type": "module",
+  "scripts": {
+    "check": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -8,8 +8,10 @@ let _client = null;
 function client() {
   if (_client) return _client;
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('SUPABASE_URL oder SUPABASE_SERVICE_ROLE_KEY fehlt in .env');
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('SUPABASE_URL oder SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY fehlt in .env');
+  }
   _client = createClient(url, key, { auth: { persistSession: false } });
   return _client;
 }
@@ -41,7 +43,10 @@ export async function uploadDiagram(localPath, examPart, year, season, page) {
  */
 export async function upsertQuestion(q, meta) {
   const hash = sha256([
-    meta.source_pdf, meta.source_page, q.question, q.options.join('|')
+    meta.source_pdf,
+    meta.source_page,
+    q.question,
+    JSON.stringify(q.options),
   ]);
   const row = {
     exam_part: meta.exam_part,

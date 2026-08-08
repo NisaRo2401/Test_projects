@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="UML-Lernstudio mit Lernkarten, Quiz und interaktivem Diagramm-Builder für die IHK-Prüfung." />
+  <meta name="theme-color" content="#f4efe6" />
+  <meta name="color-scheme" content="light" />
   <title>UML Lernstudio - IHK FIAE</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/css/variables.css" />
+  <link rel="stylesheet" href="../../assets/css/components.css" />
   <style>
     :root {
       --bg: #f4efe6;
@@ -123,6 +129,22 @@
       box-shadow: 0 10px 20px rgba(0,0,0,0.08);
     }
 
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    [role="button"]:focus-visible,
+    .board:focus-visible {
+      outline: 3px solid var(--teal);
+      outline-offset: 3px;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+      transform: none;
+      box-shadow: none;
+    }
+
     .primary {
       background: var(--accent);
       color: #fff7f2;
@@ -228,6 +250,18 @@
       border-radius: 999px;
       overflow: hidden;
       margin: 12px 0 10px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .progress-fill {
@@ -392,6 +426,7 @@
     .feedback.show { display: block; }
     .feedback.good { background: var(--ok-soft); color: #14532d; border: 1px solid rgba(34, 124, 77, 0.25); }
     .feedback.bad { background: var(--warn-soft); color: #7c2d12; border: 1px solid rgba(154, 52, 18, 0.22); }
+    #nextQuizButton { margin-top: 16px; }
 
     .practice-grid {
       display: grid;
@@ -686,6 +721,18 @@
       .shell { width: min(100% - 20px, 1180px); padding-top: 16px; }
       .hero, .panel, .sidebar { padding: 18px; }
       .hero-grid { grid-template-columns: 1fr; }
+      .board { min-height: 440px; }
+      .trainer-toolbar input { min-width: 100%; }
+      .hero-actions > button { flex: 1 1 180px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
@@ -693,20 +740,20 @@
   <div class="shell">
     <section class="hero">
       <div>
-        <div class="eyebrow">IHK FIAE · UML gezielt ueben</div>
-        <h1 class="display">UML Lernstudio fuer deine Pruefung</h1>
+        <div class="eyebrow">IHK FIAE · UML gezielt üben</div>
+        <h1 class="display">UML Lernstudio für deine Prüfung</h1>
         <p class="lead">
-          Diese Seite hilft dir beim Wiederholen, Verstehen und aktiven Ueben der UML-Diagrammtypen,
-          die in der FIAE-Pruefung typisch sind: Anwendungsfall-, Aktivitaets-, Klassen- und Sequenzdiagramm.
+          Diese Seite hilft dir beim Wiederholen, Verstehen und aktiven Üben der UML-Diagrammtypen,
+          die in der FIAE-Prüfung typisch sind: Anwendungsfall-, Aktivitäts-, Klassen- und Sequenzdiagramm.
         </p>
         <div class="hero-actions">
-          <button class="primary" onclick="scrollToSection('lernen')">Mit Lernen starten</button>
-          <button class="secondary" onclick="scrollToSection('trainer')">Direkt ueben</button>
+          <button class="primary" type="button" onclick="scrollToSection('lernen')">Mit Lernen starten</button>
+          <button class="secondary" type="button" onclick="scrollToSection('trainer')">Direkt üben</button>
         </div>
         <div class="hero-grid">
           <div class="stat">
             <strong id="solvedCount">0 / 4</strong>
-            <span>Uebungsfaelle geloest</span>
+            <span>Übungsfälle gelöst</span>
           </div>
           <div class="stat">
             <strong id="quizCount">0 / 6</strong>
@@ -714,17 +761,17 @@
           </div>
           <div class="stat">
             <strong>1 Seite</strong>
-            <span>Lernen, pruefen, wiederholen</span>
+            <span>Lernen, prüfen, wiederholen</span>
           </div>
         </div>
       </div>
 
       <aside class="hero-panel">
         <div>
-          <h2>Pruefungsfokus</h2>
+          <h2>Prüfungsfokus</h2>
           <p>
-            Nicht jedes UML-Diagramm ist gleich wichtig. Fuer FIAE lohnt es sich vor allem,
-            Zweck, Elemente, Leserichtung und typische Fehlerbilder sicher zu koennen.
+            Nicht jedes UML-Diagramm ist gleich wichtig. Für FIAE lohnt es sich vor allem,
+            Zweck, Elemente, Leserichtung und typische Fehlerbilder sicher zu können.
           </p>
         </div>
         <div class="mini-board">
@@ -741,26 +788,26 @@
     <div class="main-grid">
       <aside class="card sidebar">
         <h2 class="section-title">Dein Lernweg</h2>
-        <div class="progress-wrap"><div class="progress-fill" id="overallProgress"></div></div>
+        <div class="progress-wrap" role="progressbar" aria-label="Gesamter Lernfortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="overallProgress"></div></div>
         <div class="progress-text" id="overallProgressText">Noch kein Fortschritt gespeichert.</div>
 
         <div class="nav-group">
-          <button class="nav-button active" data-filter="all" onclick="filterLessons('all', this)">
+          <button class="nav-button active" type="button" data-filter="all" aria-pressed="true" onclick="filterLessons('all', this)">
             Alle Diagramme
-            <small>Kompletter Ueberblick</small>
+            <small>Kompletter Überblick</small>
           </button>
-          <button class="nav-button" data-filter="analyse" onclick="filterLessons('analyse', this)">
+          <button class="nav-button" type="button" data-filter="analyse" aria-pressed="false" onclick="filterLessons('analyse', this)">
             Analyse
-            <small>Use Case und Aktivitaet</small>
+            <small>Use Case und Aktivität</small>
           </button>
-          <button class="nav-button" data-filter="entwurf" onclick="filterLessons('entwurf', this)">
+          <button class="nav-button" type="button" data-filter="entwurf" aria-pressed="false" onclick="filterLessons('entwurf', this)">
             Entwurf
             <small>Klasse und Sequenz</small>
           </button>
         </div>
 
         <div class="tip-box">
-          <strong>Pruefungstipp</strong>
+          <strong>Prüfungstipp</strong>
           <p>
             Frage dich bei jeder Aufgabe zuerst: "Will ich einen Ablauf, eine Struktur oder ein Zusammenspiel zeigen?"
             Damit findest du den richtigen Diagrammtyp oft schon in wenigen Sekunden.
@@ -773,7 +820,7 @@
           <div class="toolbar">
             <div>
               <div class="pill">Lernbereich</div>
-              <h2 class="section-title">Die 4 wichtigsten UML-Diagramme fuer FIAE</h2>
+              <h2 class="section-title">Die 4 wichtigsten UML-Diagramme für FIAE</h2>
             </div>
             <p>Jede Karte zeigt Zweck, Kernelemente und ein kompaktes Beispiel.</p>
           </div>
@@ -788,25 +835,25 @@
               <div class="diagram-box">Akteur Kunde --> (Ticket buchen)
 Akteur Admin --> (Benutzer verwalten)</div>
               <ul>
-                <li>Akteure stehen ausserhalb des Systems.</li>
+                <li>Akteure stehen außerhalb des Systems.</li>
                 <li>Use Cases beschreiben Ziele, keine technischen Klickfolgen.</li>
                 <li>Systemgrenze hilft, Verantwortlichkeiten sichtbar zu machen.</li>
               </ul>
               <div class="checklist">
-                <div class="check-item"><strong>Gut fuer:</strong> Anforderungen, Rollen, fachliche Funktionen</div>
+                <div class="check-item"><strong>Gut für:</strong> Anforderungen, Rollen, fachliche Funktionen</div>
                 <div class="check-item"><strong>Typischer Fehler:</strong> Datenbanktabellen oder Buttons einzeichnen</div>
               </div>
             </article>
 
             <article class="lesson-card" data-track="analyse">
               <div class="pill">Prozesssicht</div>
-              <h3>Aktivitaetsdiagramm</h3>
+              <h3>Aktivitätsdiagramm</h3>
               <p>
-                Zeigt einen Ablauf mit Entscheidungen, Schleifen und parallelen Schritten. Ideal, wenn du einen Prozess erklaeren sollst.
+                Zeigt einen Ablauf mit Entscheidungen, Schleifen und parallelen Schritten. Ideal, wenn du einen Prozess erklären sollst.
               </p>
               <div class="diagram-box">Start
-  -> Login pruefen
-  -> [gueltig?]
+  -> Login prüfen
+  -> [gültig?]
      Ja -> Dashboard anzeigen
      Nein -> Fehlermeldung anzeigen
 Ende</div>
@@ -816,8 +863,8 @@ Ende</div>
                 <li>Parallele Verarbeitung wird mit Synchronisationsbalken modelliert.</li>
               </ul>
               <div class="checklist">
-                <div class="check-item"><strong>Gut fuer:</strong> Workflows, Fachprozesse, Alternativen</div>
-                <div class="check-item"><strong>Typischer Fehler:</strong> Klassen oder Datenstrukturen statt Aktivitaeten zeigen</div>
+                <div class="check-item"><strong>Gut für:</strong> Workflows, Fachprozesse, Alternativen</div>
+                <div class="check-item"><strong>Typischer Fehler:</strong> Klassen oder Datenstrukturen statt Aktivitäten zeigen</div>
               </div>
             </article>
 
@@ -825,7 +872,7 @@ Ende</div>
               <div class="pill">Struktursicht</div>
               <h3>Klassendiagramm</h3>
               <p>
-                Beschreibt statische Struktur: Klassen, Attribute, Methoden und Beziehungen. In der Pruefung oft fuer Domaenen- oder Entwurfsmodelle wichtig.
+                Beschreibt statische Struktur: Klassen, Attribute, Methoden und Beziehungen. In der Prüfung oft für Domänen- oder Entwurfsmodelle wichtig.
               </p>
               <div class="diagram-box">Kunde
 --------------------
@@ -839,7 +886,7 @@ Ende</div>
                 <li>Multiplizitaeten wie 1, 0..1 oder 1..* sind oft Punktebringer.</li>
               </ul>
               <div class="checklist">
-                <div class="check-item"><strong>Gut fuer:</strong> Objektstruktur, Verantwortungen, Beziehungen</div>
+                <div class="check-item"><strong>Gut für:</strong> Objektstruktur, Verantwortungen, Beziehungen</div>
                 <div class="check-item"><strong>Typischer Fehler:</strong> Ablauf in ein Klassendiagramm pressen</div>
               </div>
             </article>
@@ -848,19 +895,19 @@ Ende</div>
               <div class="pill">Interaktion</div>
               <h3>Sequenzdiagramm</h3>
               <p>
-                Zeigt zeitliche Reihenfolge von Nachrichten zwischen Objekten oder Komponenten. Perfekt fuer "wer ruft wen wann auf?".
+                Zeigt die zeitliche Reihenfolge von Nachrichten zwischen Objekten oder Komponenten. Perfekt für „wer ruft wen wann auf?“.
               </p>
               <div class="diagram-box">Benutzer -> UI: login()
-UI -> AuthService: pruefeLogin()
+UI -> AuthService: prüfeLogin()
 AuthService -> Datenbank: ladeBenutzer()
 Datenbank --> AuthService: Benutzerdaten</div>
               <ul>
-                <li>Zeit verlaeuft von oben nach unten.</li>
-                <li>Lebenslinien stehen fuer Beteiligte.</li>
-                <li>Nachrichten benoetigen sinnvolle Operationsnamen.</li>
+                <li>Zeit verläuft von oben nach unten.</li>
+                <li>Lebenslinien stehen für Beteiligte.</li>
+                <li>Nachrichten benötigen sinnvolle Operationsnamen.</li>
               </ul>
               <div class="checklist">
-                <div class="check-item"><strong>Gut fuer:</strong> Aufrufreihenfolgen, Schichten, Systemzusammenspiel</div>
+                <div class="check-item"><strong>Gut für:</strong> Aufrufreihenfolgen, Schichten, Systemzusammenspiel</div>
                 <div class="check-item"><strong>Typischer Fehler:</strong> Nur Klassenbeziehungen ohne Nachrichten darstellen</div>
               </div>
             </article>
@@ -878,9 +925,10 @@ Datenbank --> AuthService: Benutzerdaten</div>
 
           <div class="quiz-card">
             <div class="quiz-meta" id="quizMeta">Frage 1 von 6</div>
-            <div class="quiz-question" id="quizQuestion"></div>
+            <h3 class="quiz-question" id="quizQuestion" tabindex="-1"></h3>
             <div class="answer-grid" id="quizAnswers"></div>
-            <div class="feedback" id="quizFeedback"></div>
+            <div class="feedback" id="quizFeedback" role="status" aria-live="polite"></div>
+            <button class="secondary hidden" id="nextQuizButton" type="button">Nächste Quizfrage</button>
           </div>
         </section>
 
@@ -888,9 +936,9 @@ Datenbank --> AuthService: Benutzerdaten</div>
           <div class="toolbar">
             <div>
               <div class="pill">Praxistrainer</div>
-              <h2 class="section-title">Uebungsaufgaben mit Zeichenflaeche und Pruefung</h2>
+              <h2 class="section-title">Übungsaufgaben mit Zeichenfläche und Prüfung</h2>
             </div>
-            <p>Ziehe UML-Symbole per Drag-and-Drop auf das Board, verbinde sie und lass deinen Aufbau pruefen.</p>
+            <p>Ziehe UML-Symbole per Drag-and-Drop auf das Board, verbinde sie und lass deinen Aufbau prüfen.</p>
           </div>
 
           <div class="practice-grid">
@@ -906,16 +954,18 @@ Datenbank --> AuthService: Benutzerdaten</div>
                 </div>
 
                 <div class="trainer-toolbar">
-                  <input id="nodeLabelInput" type="text" placeholder="Name fuer ausgewaehltes Element" />
-                  <button class="secondary" onclick="applyNodeLabel()">Beschriftung setzen</button>
+                  <label class="sr-only" for="nodeLabelInput">Name des ausgewählten Elements</label>
+                  <input id="nodeLabelInput" type="text" maxlength="80" placeholder="Name für ausgewähltes Element" />
+                  <button class="secondary" type="button" onclick="applyNodeLabel()">Beschriftung setzen</button>
+                  <label class="sr-only" for="relationType">Beziehungstyp</label>
                   <select id="relationType">
                     <option value="association">Verbindung</option>
                     <option value="flow">Ablauf</option>
                     <option value="message">Nachricht</option>
                   </select>
-                  <button class="secondary" id="connectButton" onclick="toggleConnectMode()">Verbinden</button>
-                  <button class="secondary" onclick="deleteSelectedNode()">Loeschen</button>
-                  <button class="secondary" onclick="clearBoard()">Board leeren</button>
+                  <button class="secondary" id="connectButton" type="button" aria-pressed="false" onclick="toggleConnectMode()">Verbinden</button>
+                  <button class="secondary" type="button" onclick="deleteSelectedNode()">Löschen</button>
+                  <button class="secondary" type="button" onclick="clearBoard()">Board leeren</button>
                 </div>
 
                 <div class="builder">
@@ -933,19 +983,19 @@ Datenbank --> AuthService: Benutzerdaten</div>
 
                   <div class="board-panel">
                     <div class="board-head">
-                      <h4>Zeichenflaeche</h4>
-                      <span class="connection-chip" id="boardStatus">Noch keine Elemente auf dem Board.</span>
+                       <h4>Zeichenfläche</h4>
+                       <span class="connection-chip" id="boardStatus" role="status" aria-live="polite">Noch keine Elemente auf dem Board.</span>
                     </div>
-                    <div class="board empty" id="diagramBoard">
-                      <svg class="board-svg" id="boardSvg"></svg>
+                    <div class="board empty" id="diagramBoard" tabindex="0" role="application" aria-label="UML-Zeichenfläche">
+                      <svg class="board-svg" id="boardSvg" aria-hidden="true" focusable="false"></svg>
                     </div>
                   </div>
                 </div>
 
                 <div class="hero-actions" style="margin-top:0; margin-bottom:0;">
-                  <button class="primary" onclick="checkExercise()">Diagramm pruefen</button>
-                  <button class="secondary" onclick="nextExercise()">Naechste Aufgabe</button>
-                  <button class="secondary" onclick="toggleSample()">Musterloesung</button>
+                  <button class="primary" type="button" onclick="checkExercise()">Diagramm prüfen</button>
+                  <button class="secondary" type="button" onclick="nextExercise()">Nächste Aufgabe</button>
+                  <button class="secondary" id="sampleToggle" type="button" aria-expanded="false" aria-controls="sampleCard" onclick="toggleSample()">Musterlösung</button>
                 </div>
               </div>
             </div>
@@ -953,23 +1003,23 @@ Datenbank --> AuthService: Benutzerdaten</div>
             <div class="stack">
               <div class="review-card">
                 <h3>Dein Feedback</h3>
-                <div class="review-list" id="exerciseFeedback">
+                <div class="review-list" id="exerciseFeedback" role="status" aria-live="polite">
                   <div class="review-item neutral">Ziehe zuerst ein paar passende UML-Elemente auf das Board.</div>
                 </div>
               </div>
 
               <div class="review-card hidden" id="sampleCard">
-                <h3>Musterloesung</h3>
+                <h3>Musterlösung</h3>
                 <div class="diagram-box" id="sampleSolution"></div>
               </div>
 
               <div class="review-card">
                 <h3>So funktioniert der Builder</h3>
                 <div class="review-list">
-                  <div class="review-item neutral">Akteur, Aktivitaet, Klasse oder Teilnehmer aus der Palette ziehen.</div>
+                  <div class="review-item neutral">Akteur, Aktivität, Klasse oder Teilnehmer aus der Palette ziehen.</div>
                   <div class="review-item neutral">Element anklicken und oben den Namen setzen, zum Beispiel "Kunde" oder "Bestellung".</div>
-                  <div class="review-item neutral">Fuer Kanten zuerst "Verbinden" aktivieren, dann Quelle und Ziel anklicken.</div>
-                  <div class="review-item neutral">Die Pruefung achtet auf passende Symboltypen, wichtige Beschriftungen und erwartete Beziehungen.</div>
+                  <div class="review-item neutral">Für Kanten zuerst „Verbinden“ aktivieren, dann Quelle und Ziel anklicken.</div>
+                  <div class="review-item neutral">Die Prüfung achtet auf passende Symboltypen, wichtige Beschriftungen und erwartete Beziehungen.</div>
                 </div>
               </div>
             </div>
@@ -979,7 +1029,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
     </div>
 
     <p class="footer-note">
-      Die Seite speichert deinen Fortschritt lokal im Browser. Sie ist bewusst auf pruefungsnahe Kernmuster reduziert,
+      Die Seite speichert deinen Fortschritt lokal im Browser. Sie ist bewusst auf prüfungsnahe Kernmuster reduziert,
       damit du UML schneller erkennst und sicherer einsetzt.
     </p>
   </div>
@@ -990,46 +1040,46 @@ Datenbank --> AuthService: Benutzerdaten</div>
         question: "Welches Diagramm eignet sich am besten, um Rollen und fachliche Funktionen eines Systems zu zeigen?",
         answers: ["Klassendiagramm", "Anwendungsfalldiagramm", "Sequenzdiagramm"],
         correct: 1,
-        explanation: "Anwendungsfalldiagramme verbinden Akteure mit fachlichen Zielen und sind ideal fuer die Anforderungsanalyse."
+        explanation: "Anwendungsfalldiagramme verbinden Akteure mit fachlichen Zielen und sind ideal für die Anforderungsanalyse."
       },
       {
-        question: "Wenn du einen Prozess mit Entscheidungen und moeglichen Alternativen darstellen willst, welches Diagramm passt am besten?",
-        answers: ["Aktivitaetsdiagramm", "Klassendiagramm", "Paketdiagramm"],
+        question: "Wenn du einen Prozess mit Entscheidungen und möglichen Alternativen darstellen willst, welches Diagramm passt am besten?",
+        answers: ["Aktivitätsdiagramm", "Klassendiagramm", "Paketdiagramm"],
         correct: 0,
-        explanation: "Aktivitaetsdiagramme beschreiben Prozesse, Abzweigungen, Schleifen und parallele Aktivitaeten."
+        explanation: "Aktivitätsdiagramme beschreiben Prozesse, Abzweigungen, Schleifen und parallele Aktivitäten."
       },
       {
-        question: "Wofuer stehen Multiplizitaeten wie 1, 0..1 oder 1..* typischerweise?",
-        answers: ["Fuer Nachrichten im Sequenzdiagramm", "Fuer Kardinalitaeten im Klassendiagramm", "Fuer Start- und Endknoten im Aktivitaetsdiagramm"],
+        question: "Wofür stehen Multiplizitäten wie 1, 0..1 oder 1..* typischerweise?",
+        answers: ["Für Nachrichten im Sequenzdiagramm", "Für Kardinalitäten im Klassendiagramm", "Für Start- und Endknoten im Aktivitätsdiagramm"],
         correct: 1,
         explanation: "Multiplizitaeten beschreiben Beziehungen zwischen Klassen, etwa ein Kunde mit mehreren Bestellungen."
       },
       {
-        question: "In welchem Diagramm laeuft die Zeit hauptsaechlich von oben nach unten?",
+        question: "In welchem Diagramm läuft die Zeit hauptsächlich von oben nach unten?",
         answers: ["Sequenzdiagramm", "Use-Case-Diagramm", "Klassendiagramm"],
         correct: 0,
         explanation: "Im Sequenzdiagramm liest du Interaktionen entlang der Zeitachse von oben nach unten."
       },
       {
         question: "Was ist ein typischer Fehler in einem Anwendungsfalldiagramm?",
-        answers: ["Akteure ausserhalb der Systemgrenze", "Technische UI-Klicks statt fachlicher Ziele", "Use Cases als Ellipsen darzustellen"],
+        answers: ["Akteure außerhalb der Systemgrenze", "Technische UI-Klicks statt fachlicher Ziele", "Use Cases als Ellipsen darzustellen"],
         correct: 1,
         explanation: "Use Cases sollen fachliche Absichten zeigen, nicht jede technische Bedienhandlung."
       },
       {
         question: "Welche Kombination passt am besten zu 'wer ruft wen wann auf'?",
-        answers: ["Klassendiagramm", "Aktivitaetsdiagramm", "Sequenzdiagramm"],
+        answers: ["Klassendiagramm", "Aktivitätsdiagramm", "Sequenzdiagramm"],
         correct: 2,
-        explanation: "Das Sequenzdiagramm zeigt Interaktionen, Aufrufe und Rueckgaben in zeitlicher Reihenfolge."
+        explanation: "Das Sequenzdiagramm zeigt Interaktionen, Aufrufe und Rückgaben in zeitlicher Reihenfolge."
       }
     ];
 
     const paletteCatalog = {
-      actor: { title: "Akteur", hint: "Rolle ausserhalb des Systems" },
+      actor: { title: "Akteur", hint: "Rolle außerhalb des Systems" },
       usecase: { title: "Use Case", hint: "Fachliche Funktion" },
       boundary: { title: "Systemgrenze", hint: "Optionaler Systemrahmen" },
       start: { title: "Start", hint: "Beginn des Ablaufs" },
-      activity: { title: "Aktivitaet", hint: "Ein Verarbeitungsschritt" },
+      activity: { title: "Aktivität", hint: "Ein Verarbeitungsschritt" },
       decision: { title: "Entscheidung", hint: "Bedingung / Verzweigung" },
       end: { title: "Ende", hint: "Abschluss des Ablaufs" },
       class: { title: "Klasse", hint: "Strukturelement mit Name" },
@@ -1040,52 +1090,54 @@ Datenbank --> AuthService: Benutzerdaten</div>
       {
         type: "Anwendungsfall",
         level: "Leicht",
-        title: "Online-Terminbuchung fuer eine Werkstatt",
-        text: "Baue ein Use-Case-Diagramm. Ein Kunde bucht einen Termin. Ein Mitarbeiter bestaetigt den Termin. Optional kannst du eine Systemgrenze setzen.",
+        title: "Online-Terminbuchung für eine Werkstatt",
+        text: "Baue ein Use-Case-Diagramm. Ein Kunde bucht einen Termin. Ein Mitarbeiter bestätigt den Termin. Optional kannst du eine Systemgrenze setzen.",
         palette: ["actor", "usecase", "boundary"],
         relations: ["association"],
         expectedNodes: [
           { type: "actor", labels: ["kunde"] },
           { type: "actor", labels: ["mitarbeiter"] },
           { type: "usecase", labels: ["termin buchen", "buchen"] },
-          { type: "usecase", labels: ["termin bestaetigen", "bestaetigen"] }
+          { type: "usecase", labels: ["termin bestätigen", "termin bestaetigen", "bestaetigen"] }
         ],
         expectedConnections: [
           { kind: "association", from: ["kunde"], to: ["termin buchen", "buchen"] },
-          { kind: "association", from: ["mitarbeiter"], to: ["termin bestaetigen", "bestaetigen"] }
+          { kind: "association", from: ["mitarbeiter"], to: ["termin bestätigen", "termin bestaetigen", "bestaetigen"] }
         ],
-        sample: "Akteur Kunde -- Termin buchen\nAkteur Mitarbeiter -- Termin bestaetigen\nOptional: Systemgrenze Werkstattsystem"
+        sample: "Akteur Kunde -- Termin buchen\nAkteur Mitarbeiter -- Termin bestätigen\nOptional: Systemgrenze Werkstattsystem"
       },
       {
-        type: "Aktivitaetsdiagramm",
+        type: "Aktivitätsdiagramm",
         level: "Mittel",
         title: "Login-Prozess mit Fehlermeldung",
-        text: "Baue ein Aktivitaetsdiagramm mit Start, Eingabe, Pruefung, Entscheidung und zwei moeglichen Endpfaden: Dashboard oder Fehlermeldung.",
+        text: "Baue ein Aktivitätsdiagramm mit Start, Eingabe, Prüfung, Entscheidung und zwei möglichen Endpfaden: Dashboard oder Fehlermeldung.",
         palette: ["start", "activity", "decision", "end"],
         relations: ["flow"],
         expectedNodes: [
           { type: "start", labels: ["start"] },
           { type: "activity", labels: ["zugangsdaten eingeben", "eingabe"] },
-          { type: "activity", labels: ["login pruefen", "pruefen"] },
-          { type: "decision", labels: ["gueltig", "daten gueltig", "ok"] },
+          { type: "activity", labels: ["login prüfen", "login pruefen", "pruefen"] },
+          { type: "decision", labels: ["gültig", "gueltig", "daten gueltig", "ok"] },
           { type: "activity", labels: ["dashboard anzeigen", "dashboard"] },
           { type: "activity", labels: ["fehlermeldung anzeigen", "fehlermeldung"] },
           { type: "end", labels: ["ende"] }
         ],
         expectedConnections: [
           { kind: "flow", from: ["start"], to: ["zugangsdaten eingeben", "eingabe"] },
-          { kind: "flow", from: ["zugangsdaten eingeben", "eingabe"], to: ["login pruefen", "pruefen"] },
-          { kind: "flow", from: ["login pruefen", "pruefen"], to: ["gueltig", "daten gueltig", "ok"] },
-          { kind: "flow", from: ["gueltig", "daten gueltig", "ok"], to: ["dashboard anzeigen", "dashboard"] },
-          { kind: "flow", from: ["gueltig", "daten gueltig", "ok"], to: ["fehlermeldung anzeigen", "fehlermeldung"] }
+          { kind: "flow", from: ["zugangsdaten eingeben", "eingabe"], to: ["login prüfen", "login pruefen", "pruefen"] },
+          { kind: "flow", from: ["login prüfen", "login pruefen", "pruefen"], to: ["gültig", "gueltig", "daten gueltig", "ok"] },
+          { kind: "flow", from: ["gültig", "gueltig", "daten gueltig", "ok"], to: ["dashboard anzeigen", "dashboard"] },
+          { kind: "flow", from: ["gültig", "gueltig", "daten gueltig", "ok"], to: ["fehlermeldung anzeigen", "fehlermeldung"] },
+          { kind: "flow", from: ["dashboard anzeigen", "dashboard"], to: ["ende"] },
+          { kind: "flow", from: ["fehlermeldung anzeigen", "fehlermeldung"], to: ["ende"] }
         ],
-        sample: "Start -> Zugangsdaten eingeben -> Login pruefen -> [Daten gueltig?]\nJa -> Dashboard anzeigen -> Ende\nNein -> Fehlermeldung anzeigen -> Ende"
+        sample: "Start -> Zugangsdaten eingeben -> Login prüfen -> [Daten gültig?]\nJa -> Dashboard anzeigen -> Ende\nNein -> Fehlermeldung anzeigen -> Ende"
       },
       {
         type: "Klassendiagramm",
         level: "Mittel",
         title: "Bestellsystem modellieren",
-        text: "Baue ein Klassendiagramm mit Kunde und Bestellung. Kunde soll mehrere Bestellungen haben koennen. Die Klassen sollen sinnvoll benannt sein.",
+        text: "Baue ein Klassendiagramm mit Kunde und Bestellung. Kunde soll mehrere Bestellungen haben können. Die Klassen sollen sinnvoll benannt sein.",
         palette: ["class"],
         relations: ["association"],
         expectedNodes: [
@@ -1101,7 +1153,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
         type: "Sequenzdiagramm",
         level: "Schwer",
         title: "Passwort-Reset zwischen UI, Service und Datenbank",
-        text: "Baue ein Sequenzdiagramm mit beteiligten Teilnehmern. Benutzer startet den Reset ueber die UI, die UI ruft den Service auf, der Service liest Daten aus der Datenbank.",
+        text: "Baue ein Sequenzdiagramm mit beteiligten Teilnehmern. Benutzer startet den Reset über die UI, die UI ruft den Service auf, der Service liest Daten aus der Datenbank.",
         palette: ["participant"],
         relations: ["message"],
         expectedNodes: [
@@ -1139,7 +1191,11 @@ Datenbank --> AuthService: Benutzerdaten</div>
     let dragNodeState = null;
 
     function saveState() {
-      localStorage.setItem("uml_lernstudio_state", JSON.stringify(state));
+      try {
+        localStorage.setItem("uml_lernstudio_state", JSON.stringify(state));
+      } catch (error) {
+        console.warn("Fortschritt konnte nicht gespeichert werden", error);
+      }
     }
 
     function loadState() {
@@ -1147,19 +1203,39 @@ Datenbank --> AuthService: Benutzerdaten</div>
         const raw = localStorage.getItem("uml_lernstudio_state");
         if (!raw) return;
         const parsed = JSON.parse(raw);
-        Object.assign(state, parsed);
+        const quizIndex = Number(parsed?.quizIndex);
+        const exerciseIndex = Number(parsed?.exerciseIndex);
+        state.quizIndex = Number.isInteger(quizIndex) && quizIndex >= 0 ? quizIndex % quizData.length : 0;
+        state.exerciseIndex = Number.isInteger(exerciseIndex) && exerciseIndex >= 0 ? exerciseIndex % exercises.length : 0;
+        state.quizSolved = sanitizeSolvedMap(parsed?.quizSolved, quizData.length);
+        state.solvedExercises = sanitizeSolvedMap(parsed?.solvedExercises, exercises.length);
       } catch (error) {
         console.warn("State konnte nicht geladen werden", error);
       }
     }
 
+    function sanitizeSolvedMap(value, maxEntries) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      return Object.fromEntries(Object.entries(value).filter(([key, solved]) => {
+        const index = Number(key);
+        return Number.isInteger(index) && index >= 0 && index < maxEntries && solved === true;
+      }));
+    }
+
     function scrollToSection(id) {
-      document.getElementById(id).scrollIntoView({ behavior: "smooth", block: "start" });
+      const section = document.getElementById(id);
+      if (!section) return;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      section.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     }
 
     function filterLessons(filter, button) {
-      document.querySelectorAll(".nav-button").forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll(".nav-button").forEach(btn => {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+      });
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       document.querySelectorAll(".lesson-card").forEach(card => {
         const show = filter === "all" || card.dataset.track === filter;
@@ -1177,6 +1253,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
 
       quiz.answers.forEach((answer, index) => {
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "answer";
         btn.textContent = answer;
         btn.onclick = () => answerQuiz(index);
@@ -1186,6 +1263,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
       const feedback = document.getElementById("quizFeedback");
       feedback.className = "feedback";
       feedback.textContent = "";
+      document.getElementById("nextQuizButton").classList.add("hidden");
     }
 
     function answerQuiz(selectedIndex) {
@@ -1201,20 +1279,24 @@ Datenbank --> AuthService: Benutzerdaten</div>
       const solved = selectedIndex === quiz.correct;
       feedback.className = "feedback show " + (solved ? "good" : "bad");
       feedback.textContent = (solved ? "Richtig. " : "Noch nicht ganz. ") + quiz.explanation;
-      state.quizSolved[state.quizIndex] = solved;
+      state.quizSolved[state.quizIndex] = state.quizSolved[state.quizIndex] || solved;
       saveState();
       updateProgress();
+      document.getElementById("nextQuizButton").classList.remove("hidden");
+    }
 
-      setTimeout(() => {
-        state.quizIndex = (state.quizIndex + 1) % quizData.length;
-        saveState();
-        renderQuiz();
-      }, 1800);
+    function nextQuizQuestion() {
+      state.quizIndex = (state.quizIndex + 1) % quizData.length;
+      saveState();
+      renderQuiz();
+      document.getElementById("quizQuestion").focus();
     }
 
     function normalizeText(text) {
       return (text || "")
         .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/ae/g, "a")
         .replace(/oe/g, "o")
         .replace(/ue/g, "u")
@@ -1252,16 +1334,29 @@ Datenbank --> AuthService: Benutzerdaten</div>
       list.innerHTML = "";
 
       exercise.palette.forEach(type => {
+        const catalogItem = paletteCatalog[type];
+        if (!catalogItem) return;
         const item = document.createElement("div");
         item.className = "palette-item";
         item.draggable = true;
         item.dataset.type = type;
-        item.innerHTML = paletteCatalog[type].title + "<small>" + paletteCatalog[type].hint + "</small>";
+        item.tabIndex = 0;
+        item.setAttribute("role", "button");
+        item.setAttribute("aria-label", `${catalogItem.title} hinzufügen`);
+        item.textContent = catalogItem.title;
+        const description = document.createElement("small");
+        description.textContent = catalogItem.hint;
+        item.appendChild(description);
         item.addEventListener("dragstart", event => {
           dragPaletteType = type;
           event.dataTransfer.setData("text/plain", type);
         });
         item.addEventListener("click", () => addNode(type, 30 + boardState.nodes.length * 14, 30 + boardState.nodes.length * 14));
+        item.addEventListener("keydown", event => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          addNode(type, 30 + boardState.nodes.length * 14, 30 + boardState.nodes.length * 14);
+        });
         list.appendChild(item);
       });
     }
@@ -1273,18 +1368,20 @@ Datenbank --> AuthService: Benutzerdaten</div>
 
     function addNode(type, x, y) {
       const board = document.getElementById("diagramBoard");
+      if (!paletteCatalog[type] || !getActiveExercise().palette.includes(type)) return;
       const node = {
         id: "node-" + (++nodeCounter),
         type,
         label: paletteCatalog[type].title,
-        x: Math.max(10, Math.min(x, Math.max(10, board.clientWidth - 190))),
-        y: Math.max(10, Math.min(y, Math.max(10, board.clientHeight - 140)))
+        x: Number(x) || 10,
+        y: Number(y) || 10
       };
 
       if (type === "start") node.label = "Start";
       if (type === "end") node.label = "Ende";
-      if (type === "decision") node.label = "Gueltig?";
+      if (type === "decision") node.label = "Gültig?";
 
+      clampNodeToBoard(node, board);
       boardState.nodes.push(node);
       selectedNodeId = node.id;
       document.getElementById("nodeLabelInput").value = node.label;
@@ -1303,7 +1400,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
       if (!node) return;
       const value = document.getElementById("nodeLabelInput").value.trim();
       if (!value) return;
-      node.label = value;
+      node.label = value.slice(0, 80);
       renderBoard();
     }
 
@@ -1317,7 +1414,8 @@ Datenbank --> AuthService: Benutzerdaten</div>
       renderBoard();
     }
 
-    function clearBoard() {
+    function clearBoard(confirmClear = true) {
+      if (confirmClear && boardState.nodes.length > 0 && !window.confirm("Zeichenfläche wirklich leeren?")) return false;
       boardState.nodes = [];
       boardState.connections = [];
       selectedNodeId = null;
@@ -1325,13 +1423,16 @@ Datenbank --> AuthService: Benutzerdaten</div>
       connectMode = false;
       document.getElementById("nodeLabelInput").value = "";
       document.getElementById("connectButton").textContent = "Verbinden";
+      document.getElementById("connectButton").setAttribute("aria-pressed", "false");
       renderBoard();
+      return true;
     }
 
     function toggleConnectMode() {
       connectMode = !connectMode;
       connectSourceId = null;
       document.getElementById("connectButton").textContent = connectMode ? "Verbinden aktiv" : "Verbinden";
+      document.getElementById("connectButton").setAttribute("aria-pressed", String(connectMode));
       updateBoardStatus();
     }
 
@@ -1344,7 +1445,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
       if (!connectSourceId) {
         connectSourceId = nodeId;
         selectNode(nodeId);
-        updateBoardStatus("Quelle gewaehlt. Jetzt Ziel anklicken.");
+        updateBoardStatus("Quelle gewählt. Jetzt Ziel anklicken.");
         return;
       }
 
@@ -1364,12 +1465,26 @@ Datenbank --> AuthService: Benutzerdaten</div>
       renderBoard();
     }
 
-    function getNodeCenter(node) {
+    function getNodeDimensions(node) {
       const widthByType = { actor: 92, usecase: 150, boundary: 200, start: 64, end: 64, decision: 96, class: 170, participant: 126, activity: 118 };
       const heightByType = { actor: 92, usecase: 76, boundary: 140, start: 64, end: 64, decision: 96, class: 110, participant: 58, activity: 56 };
       return {
-        x: node.x + (widthByType[node.type] || 118) / 2,
-        y: node.y + (heightByType[node.type] || 56) / 2
+        width: widthByType[node.type] || 118,
+        height: heightByType[node.type] || 56
+      };
+    }
+
+    function clampNodeToBoard(node, board = document.getElementById("diagramBoard")) {
+      const { width, height } = getNodeDimensions(node);
+      node.x = Math.max(10, Math.min(Number(node.x) || 10, Math.max(10, board.clientWidth - width - 10)));
+      node.y = Math.max(10, Math.min(Number(node.y) || 10, Math.max(10, board.clientHeight - height - 10)));
+    }
+
+    function getNodeCenter(node) {
+      const { width, height } = getNodeDimensions(node);
+      return {
+        x: node.x + width / 2,
+        y: node.y + height / 2
       };
     }
 
@@ -1425,6 +1540,10 @@ Datenbank --> AuthService: Benutzerdaten</div>
         element.className = "board-node" + (node.id === selectedNodeId ? " selected" : "");
         element.dataset.id = node.id;
         element.dataset.type = node.type;
+        element.tabIndex = 0;
+        element.setAttribute("role", "button");
+        element.setAttribute("aria-label", `${paletteCatalog[node.type]?.title || "UML-Element"}: ${node.label}`);
+        element.setAttribute("aria-pressed", String(node.id === selectedNodeId));
         element.style.left = node.x + "px";
         element.style.top = node.y + "px";
         element.innerHTML = createNodeMarkup(node);
@@ -1435,7 +1554,9 @@ Datenbank --> AuthService: Benutzerdaten</div>
         });
 
         element.addEventListener("pointerdown", event => {
-          if (connectMode) return;
+          if (connectMode || event.button !== 0) return;
+          selectedNodeId = node.id;
+          document.getElementById("nodeLabelInput").value = node.label;
           const boardRect = board.getBoundingClientRect();
           dragNodeState = {
             id: node.id,
@@ -1445,11 +1566,43 @@ Datenbank --> AuthService: Benutzerdaten</div>
           element.setPointerCapture(event.pointerId);
         });
 
+        element.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleNodeClick(node.id);
+            focusBoardNode(node.id);
+            return;
+          }
+          if (event.key === "Delete" || event.key === "Backspace") {
+            event.preventDefault();
+            selectedNodeId = node.id;
+            deleteSelectedNode();
+            return;
+          }
+          const movement = {
+            ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10]
+          }[event.key];
+          if (!movement || connectMode) return;
+          event.preventDefault();
+          node.x += movement[0];
+          node.y += movement[1];
+          clampNodeToBoard(node, board);
+          renderBoard();
+          focusBoardNode(node.id);
+        });
+
         board.appendChild(element);
       });
 
       renderConnections();
       updateBoardStatus();
+    }
+
+    function focusBoardNode(nodeId) {
+      requestAnimationFrame(() => {
+        const node = [...document.querySelectorAll(".board-node")].find(item => item.dataset.id === nodeId);
+        node?.focus({ preventScroll: true });
+      });
     }
 
     function setupBoard() {
@@ -1486,13 +1639,19 @@ Datenbank --> AuthService: Benutzerdaten</div>
         const node = boardState.nodes.find(item => item.id === dragNodeState.id);
         if (!node) return;
 
-        node.x = Math.max(10, Math.min(event.clientX - boardRect.left - dragNodeState.offsetX, board.clientWidth - 190));
-        node.y = Math.max(10, Math.min(event.clientY - boardRect.top - dragNodeState.offsetY, board.clientHeight - 140));
+        node.x = event.clientX - boardRect.left - dragNodeState.offsetX;
+        node.y = event.clientY - boardRect.top - dragNodeState.offsetY;
+        clampNodeToBoard(node, board);
         renderBoard();
       });
 
       window.addEventListener("pointerup", () => {
         dragNodeState = null;
+      });
+
+      window.addEventListener("resize", () => {
+        boardState.nodes.forEach(node => clampNodeToBoard(node, board));
+        renderBoard();
       });
     }
 
@@ -1504,11 +1663,12 @@ Datenbank --> AuthService: Benutzerdaten</div>
       document.getElementById("exerciseText").textContent = exercise.text;
       document.getElementById("sampleSolution").textContent = exercise.sample;
       document.getElementById("sampleCard").classList.add("hidden");
+      document.getElementById("sampleToggle").setAttribute("aria-expanded", "false");
       document.getElementById("exerciseFeedback").innerHTML =
-        '<div class="review-item neutral">Baue jetzt dein Diagramm auf. Die Pruefung achtet auf Symboltyp, Namen und wichtige Beziehungen.</div>';
+        '<div class="review-item neutral">Baue jetzt dein Diagramm auf. Die Prüfung achtet auf Symboltyp, Namen und wichtige Beziehungen.</div>';
       buildRelationOptions(exercise);
       renderPalette();
-      clearBoard();
+      clearBoard(false);
     }
 
     function matchesAliases(label, aliases) {
@@ -1526,7 +1686,9 @@ Datenbank --> AuthService: Benutzerdaten</div>
         const fromNode = boardState.nodes.find(node => node.id === connection.from);
         const toNode = boardState.nodes.find(node => node.id === connection.to);
         if (!fromNode || !toNode) return false;
-        return matchesAliases(fromNode.label, expected.from) && matchesAliases(toNode.label, expected.to);
+        const forward = matchesAliases(fromNode.label, expected.from) && matchesAliases(toNode.label, expected.to);
+        if (forward || expected.kind !== "association") return forward;
+        return matchesAliases(fromNode.label, expected.to) && matchesAliases(toNode.label, expected.from);
       });
     }
 
@@ -1536,7 +1698,7 @@ Datenbank --> AuthService: Benutzerdaten</div>
       const items = [];
 
       if (boardState.nodes.length === 0) {
-        feedback.innerHTML = '<div class="review-item miss">Dein Board ist noch leer. Ziehe zuerst passende UML-Symbole auf die Zeichenflaeche.</div>';
+        feedback.innerHTML = '<div class="review-item miss">Dein Board ist noch leer. Ziehe zuerst passende UML-Symbole auf die Zeichenfläche.</div>';
         return;
       }
 
@@ -1561,16 +1723,16 @@ Datenbank --> AuthService: Benutzerdaten</div>
         }
       });
 
-      const solved = nodeHits === exercise.expectedNodes.length && connectionHits >= Math.max(1, exercise.expectedConnections.length - 1);
+      const solved = nodeHits === exercise.expectedNodes.length && connectionHits === exercise.expectedConnections.length;
       if (solved) {
         state.solvedExercises[state.exerciseIndex] = true;
-        items.unshift('<div class="review-item ok">Sehr gut. Dein Diagramm deckt die zentralen Pruefungsbausteine dieser Aufgabe ab.</div>');
+        items.unshift('<div class="review-item ok">Sehr gut. Dein Diagramm deckt die zentralen Prüfungsbausteine dieser Aufgabe ab.</div>');
       } else {
         items.unshift('<div class="review-item miss">Guter Anfang, aber es fehlen noch wichtige Elemente oder Verbindungen.</div>');
       }
 
       if (boardState.nodes.length > exercise.expectedNodes.length + 2) {
-        items.push('<div class="review-item neutral">Du hast mehr Elemente als noetig gesetzt. Fuer die Pruefung ist vor allem eine klare Kernstruktur wichtig.</div>');
+        items.push('<div class="review-item neutral">Du hast mehr Elemente als nötig gesetzt. Für die Prüfung ist vor allem eine klare Kernstruktur wichtig.</div>');
       }
 
       feedback.innerHTML = items.join("");
@@ -1579,13 +1741,16 @@ Datenbank --> AuthService: Benutzerdaten</div>
     }
 
     function nextExercise() {
+      if (boardState.nodes.length > 0 && !window.confirm("Zur nächsten Aufgabe wechseln? Das aktuelle Diagramm wird geleert.")) return;
       state.exerciseIndex = (state.exerciseIndex + 1) % exercises.length;
       saveState();
       renderExercise();
     }
 
     function toggleSample() {
-      document.getElementById("sampleCard").classList.toggle("hidden");
+      const card = document.getElementById("sampleCard");
+      const hidden = card.classList.toggle("hidden");
+      document.getElementById("sampleToggle").setAttribute("aria-expanded", String(!hidden));
     }
 
     function updateProgress() {
@@ -1598,12 +1763,14 @@ Datenbank --> AuthService: Benutzerdaten</div>
       document.getElementById("solvedCount").textContent = solvedExercises + " / " + exercises.length;
       document.getElementById("quizCount").textContent = solvedQuiz + " / " + quizData.length;
       document.getElementById("overallProgress").style.width = percentage + "%";
+      document.getElementById("overallProgress").parentElement.setAttribute("aria-valuenow", String(percentage));
       document.getElementById("overallProgressText").textContent =
         percentage === 0
           ? "Noch kein Fortschritt gespeichert."
           : "Du hast " + done + " von " + total + " Lernschritten geschafft (" + percentage + "%).";
     }
 
+    document.getElementById("nextQuizButton").addEventListener("click", nextQuizQuestion);
     loadState();
     setupBoard();
     renderQuiz();
@@ -1611,7 +1778,8 @@ Datenbank --> AuthService: Benutzerdaten</div>
     updateProgress();
   </script>
   <script>window.APP_BASE_PATH = '../..';</script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../../assets/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
   <script src="../../assets/js/auth.js"></script>
   <script src="../../assets/js/protect.js" defer></script>
   <script src="../../assets/js/nav.js" defer></script>

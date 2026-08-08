@@ -9,7 +9,7 @@ const EXAM_CONFIG = {
   WiSo: { label: 'WiSo — Wirtschafts- und Sozialkunde',      durationMin: 60, defaultQuestions: 30 },
 };
 
-// IHK-Notenschlüssel (vereinfachtes AEVO-Schema)
+// Vereinfachter IHK-Notenschlüssel
 function calcGrade(pct) {
   if (pct >= 92) return '1';
   if (pct >= 81) return '2';
@@ -20,8 +20,9 @@ function calcGrade(pct) {
 }
 
 function formatDuration(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
+  const safeSeconds = Math.max(0, Math.floor(Number(sec) || 0));
+  const m = Math.floor(safeSeconds / 60);
+  const s = safeSeconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
@@ -35,6 +36,7 @@ function shuffle(arr) {
 }
 
 function arraysEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
   if (a.length !== b.length) return false;
   const sa = a.slice().sort((x, y) => x - y);
   const sb = b.slice().sort((x, y) => x - y);
@@ -52,6 +54,7 @@ const state = {
   currentQuestionId: null,
   sim: null,         // { examPart, questions, answers, marks, timerId, endsAt, currentIdx, sessionId }
   lastResult: null,  // { session, answers, questions }
+  startingSimulation: false,
 };
 
 // ── Helpers ───────────────────────────────────────
@@ -59,8 +62,81 @@ const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
 function setView(name) {
-  $('#iet-app').dataset.view = name;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const app = $('#iet-app');
+  const activeView = $(`.iet-view[data-view-name="${name}"]`, app);
+  if (!activeView) return;
+  app.dataset.view = name;
+  $$('.iet-view', app).forEach(view => {
+    const active = view === activeView;
+    view.setAttribute('aria-hidden', String(!active));
+    if ('inert' in view) view.inert = !active;
+  });
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  requestAnimationFrame(() => {
+    const heading = $('h1, h2', activeView);
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+  });
+}
+
+function showStatus(message = '') {
+  const status = $('#ietStatus');
+  status.textContent = message;
+  status.hidden = !message;
+}
+
+function setProgress(fill, pct) {
+  const safePct = Math.max(0, Math.min(100, Number(pct) || 0));
+  fill.style.width = `${safePct}%`;
+  fill.parentElement?.setAttribute('aria-valuenow', String(Math.round(safePct)));
+}
+
+function renderDiagram(container, question) {
+  container.replaceChildren();
+  container.hidden = true;
+  if (!question.has_diagram || !question.diagram_url) return;
+
+  try {
+    const url = new URL(String(question.diagram_url), window.location.href);
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    const image = document.createElement('img');
+    image.src = url.href;
+    image.alt = 'Abbildung zur Aufgabe';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.addEventListener('error', () => {
+      container.replaceChildren();
+      container.hidden = true;
+    }, { once: true });
+    container.appendChild(image);
+    container.hidden = false;
+  } catch {
+    console.warn('Ungültige Diagramm-URL verworfen.');
+  }
+}
+
+function normalizeQuestion(row) {
+  const options = Array.isArray(row?.options) ? row.options.map(option => String(option)) : [];
+  const correctIndices = Array.isArray(row?.correct_indices)
+    ? [...new Set(row.correct_indices.map(Number))].filter(index => Number.isInteger(index) && index >= 0 && index < options.length)
+    : [];
+  if (row?.id == null || !String(row.question || '').trim() || options.length < 2 || correctIndices.length === 0) {
+    return null;
+  }
+  return {
+    ...row,
+    question: String(row.question).trim(),
+    options,
+    correct_indices: correctIndices,
+    topic: String(row.topic || 'Allgemein').trim() || 'Allgemein',
+    subtopic: row.subtopic ? String(row.subtopic).trim() : '',
+    exam_part: String(row.exam_part || '').trim(),
+    difficulty: String(row.difficulty || 'Standard').trim(),
+    solution: row.solution ? String(row.solution) : '',
+    hint: row.hint ? String(row.hint) : '',
+  };
 }
 
 function badge(text) {
@@ -98,7 +174,11 @@ async function loadQuestions() {
     .order('topic', { ascending: true })
     .order('difficulty', { ascending: true });
   if (error) throw error;
-  state.questions = data || [];
+  const normalized = (data || []).map(normalizeQuestion).filter(Boolean);
+  if (normalized.length !== (data || []).length) {
+    console.warn(`${(data || []).length - normalized.length} ungültige Fragen wurden übersprungen.`);
+  }
+  state.questions = normalized;
 }
 
 async function loadProgress() {
@@ -121,25 +201,29 @@ async function upsertProgress(questionId, correct) {
     last_correct: correct,
     last_answered_at: new Date().toISOString(),
   };
-  const { error } = await state.client
-    .from('user_progress')
-    .upsert(row, { onConflict: 'user_id,question_id' });
-  if (error) {
-    console.error('Progress-Upsert fehlgeschlagen:', error);
-    return;
-  }
   state.progress.set(questionId, row);
+  try {
+    const { error } = await state.client
+      .from('user_progress')
+      .upsert(row, { onConflict: 'user_id,question_id' });
+    if (error) throw error;
+  } catch (error) {
+    console.error('Progress-Upsert fehlgeschlagen:', error);
+    return false;
+  }
+  return true;
 }
 
 // ── Home: Gesamtfortschritt ───────────────────────
 function renderHome() {
   const total = state.questions.length;
+  const questionIds = new Set(state.questions.map(question => question.id));
   const answered = Array.from(state.progress.values())
-    .filter(p => state.questions.some(q => q.id === p.question_id)).length;
+    .filter(progress => questionIds.has(progress.question_id)).length;
   const correct = Array.from(state.progress.values())
-    .filter(p => p.last_correct === true).length;
+    .filter(progress => questionIds.has(progress.question_id) && progress.last_correct === true).length;
   const pct = total ? Math.round((answered / total) * 100) : 0;
-  $('#ietOverallBar').style.width = pct + '%';
+  setProgress($('#ietOverallBar'), pct);
   $('#ietOverallPct').textContent = pct + '%';
   $('#ietOverallNote').textContent = `${answered} von ${total} Fragen beantwortet · ${correct} richtig`;
   setView('home');
@@ -165,7 +249,7 @@ function renderTopics() {
   const sorted = Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0], 'de'));
 
   if (sorted.length === 0) {
-    list.innerHTML = '<p class="iet-muted">Keine Fragen für diesen Filter. Importiere mehr PDFs.</p>';
+    list.innerHTML = '<p class="iet-muted">Für diesen Filter sind aktuell keine Fragen verfügbar.</p>';
     setView('topics');
     return;
   }
@@ -177,20 +261,22 @@ function renderTopics() {
     const pct = total ? Math.round((answered / total) * 100) : 0;
     const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
 
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'iet-topic-card';
+    card.setAttribute('aria-label', `${topic}: ${answered} von ${total} beantwortet, ${accuracy} Prozent richtig`);
     card.innerHTML = `
-      <div>
-        <div class="iet-topic-head">
-          <h3>${escapeHtml(topic)}</h3>
+      <span class="iet-topic-main">
+        <span class="iet-topic-head">
+          <span class="iet-topic-title">${escapeHtml(topic)}</span>
           <span class="badge">${total} Frage${total === 1 ? '' : 'n'}</span>
-        </div>
-        <div class="iet-topic-stats">${answered}/${total} beantwortet · ${accuracy}% richtig</div>
-      </div>
-      <div class="iet-topic-pct">${pct}%</div>
-      <div class="iet-topic-bar-wrap">
-        <div class="iet-progress iet-progress-sm"><div class="iet-progress-fill" style="width:${pct}%"></div></div>
-      </div>
+        </span>
+        <span class="iet-topic-stats">${answered}/${total} beantwortet · ${accuracy}% richtig</span>
+      </span>
+      <span class="iet-topic-pct">${pct}%</span>
+      <span class="iet-topic-bar-wrap">
+        <span class="iet-progress iet-progress-sm" role="progressbar" aria-label="Fortschritt ${escapeHtml(topic)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="iet-progress-fill" style="width:${pct}%"></span></span>
+      </span>
     `;
     card.addEventListener('click', () => startTopic(topic));
     list.appendChild(card);
@@ -235,14 +321,7 @@ function renderQuestion() {
   if (q.source_page) meta.appendChild(badge(`S.${q.source_page}`));
 
   // Diagramm
-  const diag = $('#ietQDiagram');
-  if (q.has_diagram && q.diagram_url) {
-    diag.innerHTML = `<img src="${q.diagram_url}" alt="Diagramm">`;
-    diag.hidden = false;
-  } else {
-    diag.innerHTML = '';
-    diag.hidden = true;
-  }
+  renderDiagram($('#ietQDiagram'), q);
 
   // Text + Optionen
   $('#ietQText').textContent = q.question;
@@ -264,12 +343,16 @@ function renderQuestion() {
 
   // Reset UI
   $('#ietHintBox').hidden = true;
+  $('#ietHintBox').textContent = '';
   $('#ietFeedback').hidden = true;
   $('#ietSolution').hidden = true;
   $('#ietSolution .iet-solution-body').hidden = true;
   $('#ietCheckBtn').hidden = false;
   $('#ietNextBtn').hidden = true;
-  $('#ietHintBtn').disabled = false;
+  $('#ietHintBtn').disabled = !q.hint;
+  const solutionToggle = $('#ietSolution .iet-solution-toggle');
+  solutionToggle.textContent = 'Musterlösung anzeigen ▾';
+  solutionToggle.setAttribute('aria-expanded', 'false');
 
   // Topic-Progressbar
   updateTopicBar();
@@ -277,10 +360,12 @@ function renderQuestion() {
 }
 
 function updateTopicBar() {
-  const qs = state.questions.filter(q => q.topic === state.currentTopic);
+  const qs = state.questions
+    .filter(q => q.topic === state.currentTopic)
+    .filter(q => state.topicFilter === 'ALL' || q.exam_part === state.topicFilter);
   const answered = qs.filter(q => state.progress.has(q.id)).length;
   const pct = qs.length ? Math.round((answered / qs.length) * 100) : 0;
-  $('#ietTopicBar').style.width = pct + '%';
+  setProgress($('#ietTopicBar'), pct);
   $('#ietTopicNote').textContent = `${answered}/${qs.length} in ${state.currentTopic}`;
 }
 
@@ -318,7 +403,8 @@ async function handleCheckAnswer() {
   $('#ietNextBtn').hidden = false;
   $('#ietHintBtn').disabled = true;
 
-  await upsertProgress(q.id, correct);
+  const saved = await upsertProgress(q.id, correct);
+  if (!saved) showStatus('Die Antwort wurde bewertet, der Fortschritt konnte aber nicht gespeichert werden.');
   updateTopicBar();
 }
 
@@ -336,6 +422,7 @@ function handleToggleSolution() {
   body.hidden = !body.hidden;
   const btn = $('#ietSolution .iet-solution-toggle');
   btn.textContent = body.hidden ? 'Musterlösung anzeigen ▾' : 'Musterlösung ausblenden ▴';
+  btn.setAttribute('aria-expanded', String(!body.hidden));
 }
 
 function handleNextQuestion() {
@@ -364,11 +451,14 @@ function renderSimSetup() {
     const card = document.createElement('button');
     card.className = 'iet-sim-part-card';
     card.type = 'button';
-    if (available < 5) card.disabled = true;
+    if (available < 5) {
+      card.disabled = true;
+      card.title = 'Mindestens 5 Fragen erforderlich';
+    }
     card.innerHTML = `
-      <h4>${cfg.label.split(' — ')[0]}</h4>
-      <p>${escapeHtml(cfg.label.split(' — ')[1] || '')}</p>
-      <p><strong>${cfg.durationMin} Min</strong> · ${Math.min(cfg.defaultQuestions, available)} Fragen${available < cfg.defaultQuestions ? ` (nur ${available} verfügbar)` : ''}</p>
+      <span class="iet-sim-part-title">${cfg.label.split(' — ')[0]}</span>
+      <span class="iet-sim-part-detail">${escapeHtml(cfg.label.split(' — ')[1] || '')}</span>
+      <span class="iet-sim-part-detail"><strong>${cfg.durationMin} Min</strong> · ${Math.min(cfg.defaultQuestions, available)} Fragen${available < cfg.defaultQuestions ? ` (nur ${available} verfügbar)` : ''}</span>
     `;
     card.addEventListener('click', () => startSimulation(part));
     container.appendChild(card);
@@ -378,7 +468,9 @@ function renderSimSetup() {
 
 // ── Simulation: Start ─────────────────────────────
 async function startSimulation(examPart) {
+  if (state.startingSimulation || state.sim) return;
   const cfg = EXAM_CONFIG[examPart];
+  if (!cfg) return;
   const pool = state.questions.filter(q => q.exam_part === examPart);
   if (pool.length < 5) {
     alert('Nicht genug Fragen für diesen Prüfungsteil.');
@@ -386,19 +478,28 @@ async function startSimulation(examPart) {
   }
   const count = Math.min(cfg.defaultQuestions, pool.length);
   const simQuestions = shuffle(pool).slice(0, count);
+  state.startingSimulation = true;
+  $$('.iet-sim-part-card').forEach(button => { button.disabled = true; });
+  showStatus('Prüfungssimulation wird vorbereitet…');
 
-  const { data: session, error } = await state.client
-    .from('exam_sessions')
-    .insert({
-      user_id: state.userId,
-      exam_part: examPart,
-      total_questions: count,
-    })
-    .select('id')
-    .single();
-  if (error) {
-    console.error(error);
-    alert('Konnte Session nicht anlegen: ' + error.message);
+  let session;
+  try {
+    const result = await state.client
+      .from('exam_sessions')
+      .insert({
+        user_id: state.userId,
+        exam_part: examPart,
+        total_questions: count,
+      })
+      .select('id')
+      .single();
+    if (result.error) throw result.error;
+    session = result.data;
+  } catch (error) {
+    console.error('Session konnte nicht angelegt werden:', error);
+    showStatus('Die Simulation konnte nicht gestartet werden. Bitte versuche es erneut.');
+    state.startingSimulation = false;
+    renderSimSetup();
     return;
   }
 
@@ -412,16 +513,21 @@ async function startSimulation(examPart) {
     endsAt: Date.now() + cfg.durationMin * 60 * 1000,
     startedAt: Date.now(),
     timerId: null,
+    submitting: false,
   };
+  state.startingSimulation = false;
+  showStatus();
   $('#ietSimPart').textContent = cfg.label;
+  $('[data-action="submit-sim"]').disabled = false;
+  $('#ietSimMarkBtn').disabled = false;
   state.sim.timerId = setInterval(tickTimer, 1000);
   tickTimer();
   renderSimQuestion();
 }
 
 function tickTimer() {
-  if (!state.sim) return;
-  const remainSec = Math.max(0, Math.floor((state.sim.endsAt - Date.now()) / 1000));
+  if (!state.sim || state.sim.submitting) return;
+  const remainSec = Math.max(0, Math.ceil((state.sim.endsAt - Date.now()) / 1000));
   const timer = $('#ietSimTimer');
   timer.textContent = formatDuration(remainSec);
   timer.classList.toggle('is-warning', remainSec <= 600 && remainSec > 60);
@@ -439,14 +545,7 @@ function renderSimQuestion() {
   $('#ietSimCounter').textContent = `Frage ${idx + 1} / ${state.sim.questions.length}`;
   $('#ietSimQText').textContent = q.question;
 
-  const diag = $('#ietSimDiagram');
-  if (q.has_diagram && q.diagram_url) {
-    diag.innerHTML = `<img src="${q.diagram_url}" alt="Diagramm">`;
-    diag.hidden = false;
-  } else {
-    diag.innerHTML = '';
-    diag.hidden = true;
-  }
+  renderDiagram($('#ietSimDiagram'), q);
 
   const form = $('#ietSimForm');
   form.innerHTML = '';
@@ -467,11 +566,14 @@ function renderSimQuestion() {
 
   renderSimPager();
   $('#ietSimMarkBtn').textContent = state.sim.marks[idx] ? '★ Markiert' : 'Markieren';
+  $('#ietSimMarkBtn').setAttribute('aria-pressed', String(state.sim.marks[idx]));
+  $('[data-action="sim-prev"]').disabled = idx === 0;
+  $('[data-action="sim-next"]').disabled = idx === state.sim.questions.length - 1;
   setView('sim');
 }
 
 function saveCurrentAnswer() {
-  if (!state.sim) return;
+  if (!state.sim || state.sim.submitting) return;
   const idx = state.sim.currentIdx;
   const selected = $$('input[name="iet-sim-opt"]', $('#ietSimForm'))
     .filter(i => i.checked)
@@ -488,10 +590,13 @@ function renderSimPager() {
     dot.type = 'button';
     dot.className = 'iet-pager-dot';
     dot.textContent = String(i + 1);
+    dot.setAttribute('aria-label', `Frage ${i + 1}${state.sim.answers[i] ? ', beantwortet' : ''}${state.sim.marks[i] ? ', markiert' : ''}`);
+    if (i === state.sim.currentIdx) dot.setAttribute('aria-current', 'step');
     if (i === state.sim.currentIdx) dot.classList.add('is-current');
     if (state.sim.answers[i]) dot.classList.add('is-answered');
     if (state.sim.marks[i]) dot.classList.add('is-marked');
     dot.addEventListener('click', () => {
+      if (state.sim.submitting) return;
       saveCurrentAnswer();
       state.sim.currentIdx = i;
       renderSimQuestion();
@@ -501,7 +606,7 @@ function renderSimPager() {
 }
 
 function handleSimPrev() {
-  if (!state.sim) return;
+  if (!state.sim || state.sim.submitting) return;
   saveCurrentAnswer();
   if (state.sim.currentIdx > 0) {
     state.sim.currentIdx -= 1;
@@ -510,7 +615,7 @@ function handleSimPrev() {
 }
 
 function handleSimNext() {
-  if (!state.sim) return;
+  if (!state.sim || state.sim.submitting) return;
   saveCurrentAnswer();
   if (state.sim.currentIdx < state.sim.questions.length - 1) {
     state.sim.currentIdx += 1;
@@ -519,56 +624,66 @@ function handleSimNext() {
 }
 
 function handleSimMark() {
-  if (!state.sim) return;
+  if (!state.sim || state.sim.submitting) return;
   const idx = state.sim.currentIdx;
   state.sim.marks[idx] = !state.sim.marks[idx];
   $('#ietSimMarkBtn').textContent = state.sim.marks[idx] ? '★ Markiert' : 'Markieren';
+  $('#ietSimMarkBtn').setAttribute('aria-pressed', String(state.sim.marks[idx]));
   renderSimPager();
 }
 
 async function submitSimulation(auto = false) {
-  if (!state.sim) return;
+  if (!state.sim || state.sim.submitting) return;
   if (!auto && !confirm(`Prüfung jetzt abgeben? ${state.sim.answers.filter(a => a).length}/${state.sim.questions.length} beantwortet.`)) {
     return;
   }
   saveCurrentAnswer();
-  clearInterval(state.sim.timerId);
+  const sim = state.sim;
+  sim.submitting = true;
+  clearInterval(sim.timerId);
+  $('[data-action="submit-sim"]').disabled = true;
+  $$('#ietSimForm input, .iet-sim-nav button, #ietSimPager button').forEach(control => { control.disabled = true; });
+  showStatus('Ergebnis wird gespeichert…');
 
-  const answersDetail = state.sim.questions.map((q, i) => {
-    const selected = state.sim.answers[i] || [];
+  const answersDetail = sim.questions.map((q, i) => {
+    const selected = sim.answers[i] || [];
     const correct = selected.length > 0 && arraysEqual(selected, q.correct_indices);
     return { question_id: q.id, selected, correct };
   });
   const correctCount = answersDetail.filter(a => a.correct).length;
-  const total = state.sim.questions.length;
+  const total = sim.questions.length;
   const scorePct = total ? (correctCount / total) * 100 : 0;
   const grade = calcGrade(scorePct);
-  const durationSec = Math.round((Date.now() - state.sim.startedAt) / 1000);
+  const durationSec = Math.max(0, Math.round((Date.now() - sim.startedAt) / 1000));
+  let fullySaved = true;
 
-  await state.client
-    .from('exam_sessions')
-    .update({
-      finished_at: new Date().toISOString(),
-      duration_sec: durationSec,
-      correct_count: correctCount,
-      score_pct: scorePct,
-      grade,
-      answers: answersDetail,
-    })
-    .eq('id', state.sim.sessionId);
+  try {
+    const { error } = await state.client
+      .from('exam_sessions')
+      .update({
+        finished_at: new Date().toISOString(),
+        duration_sec: durationSec,
+        correct_count: correctCount,
+        score_pct: scorePct,
+        grade,
+        answers: answersDetail,
+      })
+      .eq('id', sim.sessionId);
+    if (error) throw error;
 
-  // Auch user_progress mit Simulationsergebnissen updaten
-  for (let i = 0; i < state.sim.questions.length; i++) {
-    const q = state.sim.questions[i];
-    const a = answersDetail[i];
-    if (a.selected.length > 0) {
-      await upsertProgress(q.id, a.correct);
-    }
+    const progressResults = await Promise.all(sim.questions.map((q, index) => {
+      const answer = answersDetail[index];
+      return answer.selected.length > 0 ? upsertProgress(q.id, answer.correct) : true;
+    }));
+    fullySaved = progressResults.every(Boolean);
+  } catch (error) {
+    fullySaved = false;
+    console.error('Simulationsergebnis konnte nicht vollständig gespeichert werden:', error);
   }
 
   const session = {
-    id: state.sim.sessionId,
-    exam_part: state.sim.examPart,
+    id: sim.sessionId,
+    exam_part: sim.examPart,
     duration_sec: durationSec,
     correct_count: correctCount,
     total_questions: total,
@@ -578,19 +693,24 @@ async function submitSimulation(auto = false) {
   state.lastResult = {
     session,
     answers: answersDetail,
-    questions: state.sim.questions,
+    questions: sim.questions,
   };
   state.sim = null;
+  showStatus(fullySaved ? '' : 'Das Ergebnis wird angezeigt, konnte aber nicht vollständig gespeichert werden.');
   renderResult(auto);
 }
 
 function renderResult(autoSubmitted = false) {
+  if (!state.lastResult) {
+    renderHome();
+    return;
+  }
   const { session, answers, questions } = state.lastResult;
-  const cfg = EXAM_CONFIG[session.exam_part];
+  const cfg = EXAM_CONFIG[session.exam_part] || { label: session.exam_part || 'Prüfung' };
   $('#ietResultTitle').textContent = autoSubmitted ? 'Zeit abgelaufen — Ergebnis' : 'Ergebnis';
   $('#ietResultSub').textContent = `${cfg.label} · Dauer ${formatDuration(session.duration_sec)}`;
   $('#ietResultGrade').textContent = session.grade;
-  $('#ietResultBar').style.width = session.score_pct.toFixed(1) + '%';
+  setProgress($('#ietResultBar'), session.score_pct);
   $('#ietResultPct').textContent = `${session.correct_count} / ${session.total_questions} richtig · ${session.score_pct.toFixed(1)}%`;
 
   // Aufschlüsselung nach Thema
@@ -610,6 +730,7 @@ function renderResult(autoSubmitted = false) {
     row.innerHTML = `<span class="iet-breakdown-topic">${escapeHtml(topic)}</span><span class="iet-breakdown-score">${correct} / ${total}</span>`;
     breakdown.appendChild(row);
   }
+  $('[data-action="review-wrong"]').disabled = answers.every(answer => answer.correct);
   setView('result');
 }
 
@@ -645,42 +766,59 @@ function renderReview() {
 }
 
 async function renderHistory() {
-  const { data, error } = await state.client
-    .from('exam_sessions')
-    .select('id, exam_part, started_at, finished_at, duration_sec, correct_count, total_questions, score_pct, grade')
-    .eq('user_id', state.userId)
-    .not('finished_at', 'is', null)
-    .order('finished_at', { ascending: false })
-    .limit(50);
   const list = $('#ietHistoryList');
+  list.innerHTML = '<p class="iet-muted" role="status">Verlauf wird geladen…</p>';
+  setView('history');
+
+  let data;
+  try {
+    const result = await state.client
+      .from('exam_sessions')
+      .select('id, exam_part, started_at, finished_at, duration_sec, correct_count, total_questions, score_pct, grade')
+      .eq('user_id', state.userId)
+      .not('finished_at', 'is', null)
+      .order('finished_at', { ascending: false })
+      .limit(50);
+    if (result.error) throw result.error;
+    data = result.data;
+  } catch (error) {
+    console.error('Verlauf konnte nicht geladen werden:', error);
+    list.innerHTML = '<div class="card iet-empty" role="alert"><p>Der Verlauf konnte nicht geladen werden.</p><button class="btn btn-primary" type="button" data-action="go-history">Erneut versuchen</button></div>';
+    return;
+  }
+
   list.innerHTML = '';
-  if (error || !data || data.length === 0) {
+  if (!data || data.length === 0) {
     list.innerHTML = '<p class="iet-muted">Noch keine abgeschlossenen Simulationen.</p>';
-    setView('history');
     return;
   }
   for (const s of data) {
     const cfg = EXAM_CONFIG[s.exam_part] || { label: s.exam_part };
-    const when = new Date(s.finished_at).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+    const finishedAt = new Date(s.finished_at);
+    const when = Number.isNaN(finishedAt.getTime())
+      ? 'Datum unbekannt'
+      : finishedAt.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
     const item = document.createElement('div');
     item.className = 'iet-history-item';
+    const correctCount = Number.isFinite(Number(s.correct_count)) ? Number(s.correct_count) : 0;
+    const totalQuestions = Number.isFinite(Number(s.total_questions)) ? Number(s.total_questions) : 0;
+    const grade = escapeHtml(s.grade ?? '–');
     item.innerHTML = `
       <div>
         <strong>${escapeHtml(cfg.label)}</strong>
-        <div class="iet-history-meta">${when} · ${formatDuration(s.duration_sec || 0)} · ${s.correct_count}/${s.total_questions}</div>
+        <div class="iet-history-meta">${when} · ${formatDuration(s.duration_sec || 0)} · ${correctCount}/${totalQuestions}</div>
       </div>
       <div class="iet-history-score">
-        ${Number(s.score_pct || 0).toFixed(0)}% · Note ${s.grade}
+        ${Number(s.score_pct || 0).toFixed(0)}% · Note ${grade}
       </div>
     `;
     list.appendChild(item);
   }
-  setView('history');
 }
 
 // ── Markdown (minimal) ────────────────────────────
 function renderMarkdown(text) {
-  let html = escapeHtml(text);
+  let html = escapeHtml(text || 'Keine Erläuterung hinterlegt.');
   html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -703,9 +841,9 @@ function bindEvents() {
     const action = el.dataset.action;
     switch (action) {
       case 'reload':           return location.reload();
-      case 'go-home':          return renderHome();
-      case 'go-topics':        return renderTopics();
-      case 'go-sim-setup':     return renderSimSetup();
+      case 'go-home':          showStatus(); return renderHome();
+      case 'go-topics':        showStatus(); return renderTopics();
+      case 'go-sim-setup':     showStatus(); return renderSimSetup();
       case 'go-history':       return renderHistory();
       case 'show-hint':        return handleShowHint();
       case 'check-answer':     return handleCheckAnswer();
@@ -725,7 +863,9 @@ function bindEvents() {
     const btn = e.target.closest('.iet-filter');
     if (!btn) return;
     $$('.iet-filter').forEach(b => b.classList.remove('is-active'));
+    $$('.iet-filter').forEach(b => b.setAttribute('aria-pressed', 'false'));
     btn.classList.add('is-active');
+    btn.setAttribute('aria-pressed', 'true');
     state.topicFilter = btn.dataset.part;
     renderTopics();
   });
@@ -738,10 +878,10 @@ function bindEvents() {
 
 // ── Init ──────────────────────────────────────────
 async function main() {
+  bindEvents();
   try {
     await initSupabase();
     await Promise.all([loadQuestions(), loadProgress()]);
-    bindEvents();
     if (state.questions.length === 0) {
       setView('empty');
       return;
@@ -749,10 +889,11 @@ async function main() {
     renderHome();
   } catch (err) {
     console.error('Init-Fehler:', err);
-    const app = $('#iet-app');
-    app.dataset.view = 'empty';
-    const card = app.querySelector('[data-view-name="empty"] .card');
-    card.innerHTML = `<h2>Fehler</h2><p>${escapeHtml(err.message || String(err))}</p>`;
+    const message = err?.message === 'Keine Session'
+      ? 'Deine Sitzung ist abgelaufen. Du wirst zur Anmeldung weitergeleitet.'
+      : 'Bitte prüfe deine Verbindung und versuche es erneut.';
+    $('#ietErrorMessage').textContent = message;
+    setView('error');
   }
 }
 

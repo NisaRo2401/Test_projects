@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const sections = [
   {
@@ -9,34 +9,30 @@ const sections = [
       {
         title: "SELECT",
         desc: "Liest Daten aus einer Tabelle. Mit * werden alle Spalten zurückgegeben, mit DISTINCT werden doppelte Zeilen entfernt.",
-        code: `SELECT col1, col2 FROM table;
-SELECT * FROM table;
-SELECT DISTINCT col FROM table;`,
+        code: `SELECT spalte1, spalte2 FROM tabelle;
+SELECT * FROM tabelle;
+SELECT DISTINCT spalte FROM tabelle;`,
       },
       {
         title: "WHERE",
         desc: "Filtert Zeilen nach Bedingungen. Mehrere Bedingungen lassen sich mit AND / OR kombinieren.",
-        code: `SELECT * FROM table
-WHERE col = 'wert';
-WHERE col != 'x' AND col2 > 5;
-WHERE col IN ('a', 'b', 'c');
-WHERE col BETWEEN 10 AND 20;
-WHERE col IS NULL;
-WHERE col LIKE '%muster%';`,
+        code: `SELECT * FROM tabelle WHERE spalte = 'wert';
+SELECT * FROM tabelle WHERE spalte != 'x' AND spalte2 > 5;
+SELECT * FROM tabelle WHERE spalte IN ('a', 'b', 'c');
+SELECT * FROM tabelle WHERE spalte BETWEEN 10 AND 20;
+SELECT * FROM tabelle WHERE spalte IS NULL;
+SELECT * FROM tabelle WHERE spalte LIKE '%muster%';`,
       },
       {
         title: "ORDER BY & LIMIT",
         desc: "Sortiert das Ergebnis (ASC = aufsteigend, DESC = absteigend) und begrenzt die Anzahl der zurückgegebenen Zeilen. OFFSET überspringt die ersten N Zeilen – nützlich für Paginierung.",
-        code: `SELECT * FROM table
-ORDER BY col ASC;
-ORDER BY col DESC;
-ORDER BY col1 ASC, col2 DESC;
-LIMIT 10;
+        code: `SELECT * FROM tabelle
+ORDER BY spalte1 ASC, spalte2 DESC
 LIMIT 10 OFFSET 20;  -- Seite 3 bei 10 pro Seite`,
       },
       {
         title: "Aliase (AS)",
-        desc: "Gibt Spalten oder Tabellen einen temporären Namen im Ergebnis – verbessert die Lesbarkeit und ist Pflicht bei Subqueries.",
+        desc: "Gibt Spalten oder Tabellen einen temporären Namen im Ergebnis – verbessert die Lesbarkeit und ist bei abgeleiteten Tabellen im FROM erforderlich.",
         code: `SELECT vorname AS name, gehalt * 12 AS jahresgehalt
 FROM mitarbeiter AS m
 WHERE m.abteilung = 'IT';`,
@@ -166,7 +162,7 @@ TRUNCATE TABLE nutzer;`,
       },
       {
         title: "ALTER TABLE",
-        desc: "Ändert die Struktur einer bestehenden Tabelle: Spalten hinzufügen, umbenennen, ändern oder entfernen – ohne Datenverlust.",
+        desc: "Ändert die Struktur einer bestehenden Tabelle. Vor riskanten Änderungen ist ein Backup nötig; DROP COLUMN entfernt auch die Werte dieser Spalte.",
         code: `ALTER TABLE nutzer ADD COLUMN telefon VARCHAR(20);
 ALTER TABLE nutzer DROP COLUMN telefon;
 ALTER TABLE nutzer RENAME COLUMN alt TO neu;
@@ -353,18 +349,19 @@ COMMIT;`,
 ];
 
 const KEYWORDS = ["SELECT","FROM","WHERE","JOIN","INNER","LEFT","RIGHT","FULL","OUTER","ON","GROUP BY","ORDER BY","HAVING","LIMIT","OFFSET","INSERT INTO","VALUES","UPDATE","SET","DELETE","TRUNCATE","CREATE","ALTER","DROP","TABLE","INDEX","WITH","RECURSIVE","AS","CASE","WHEN","THEN","ELSE","END","DISTINCT","IN","BETWEEN","LIKE","IS NULL","NOT","AND","OR","BY","ASC","DESC","PARTITION","OVER","RANK","ROW_NUMBER","SUM","COUNT","AVG","MIN","MAX","UNIQUE","PRIMARY KEY","AUTO_INCREMENT","DEFAULT","NOT NULL","IF EXISTS","ANALYZE","EXPLAIN","ADD","MODIFY","RENAME","COLUMN","CONSTRAINT","REFERENCES","FOREIGN KEY","ON DELETE CASCADE","START TRANSACTION","COMMIT","ROLLBACK","SAVEPOINT","ROLLBACK TO SAVEPOINT","UNION ALL","UNION","INTERVAL","DATE_FORMAT","DATEDIFF","CURDATE","NOW","UPPER","LOWER","LENGTH","TRIM","SUBSTRING","CONCAT","REPLACE","VARCHAR","INT","BIGINT","TIMESTAMP","BOOLEAN"];
+const SORTED_KEYWORDS = [...KEYWORDS].sort((a, b) => b.length - a.length);
 
 function highlight(code) {
   return code.split("\n").map((line, li) => {
     if (line.trim().startsWith("--")) {
-      return <div key={li} style={{ color: "#6b7280", fontStyle: "italic" }}>{line || " "}</div>;
+      return <span key={li} style={{ display: "block", color: "#94a3b8", fontStyle: "italic" }}>{line || " "}</span>;
     }
     const parts = [];
     let i = 0;
     while (i < line.length) {
       let matched = false;
       const upper = line.slice(i).toUpperCase();
-      for (const kw of KEYWORDS) {
+      for (const kw of SORTED_KEYWORDS) {
         if (upper.startsWith(kw) && (i === 0 || /[\s,(=!<>]/.test(line[i-1]))) {
           const after = line[i + kw.length];
           if (!after || /[\s;,()\n]/.test(after)) {
@@ -376,11 +373,18 @@ function highlight(code) {
         }
       }
       if (!matched) {
-        if (line[i] === "'") {
+        if (line[i] === "-" && line[i + 1] === "-") {
+          parts.push(<span key={i} style={{ color: "#94a3b8", fontStyle: "italic" }}>{line.slice(i)}</span>);
+          break;
+        } else if (line[i] === "'") {
           let j = i + 1;
-          while (j < line.length && line[j] !== "'") j++;
-          parts.push(<span key={i} style={{ color: "#4ade80" }}>{line.slice(i, j + 1)}</span>);
-          i = j + 1;
+          while (j < line.length) {
+            if (line[j] === "'" && line[j + 1] === "'") { j += 2; continue; }
+            if (line[j] === "'") { j++; break; }
+            j++;
+          }
+          parts.push(<span key={i} style={{ color: "#4ade80" }}>{line.slice(i, j)}</span>);
+          i = j;
         } else if (/\d/.test(line[i]) && (i === 0 || /[\s,=(]/.test(line[i-1]))) {
           let j = i;
           while (j < line.length && /[\d.]/.test(line[j])) j++;
@@ -392,21 +396,50 @@ function highlight(code) {
         }
       }
     }
-    return <div key={li} style={{ minHeight: "1.7em" }}>{parts.length ? parts : null}</div>;
+    return <span key={li} style={{ display: "block", minHeight: "1.7em" }}>{parts.length ? parts : " "}</span>;
   });
+}
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch (_) {
+    // Fallback für HTTP, eingebettete Vorschauen und restriktive Browser.
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Kopieren wurde vom Browser blockiert");
 }
 
 export default function SQLCheatSheet() {
   const [active, setActive] = useState("basics");
   const [expanded, setExpanded] = useState({});
   const [copied, setCopied] = useState(null);
+  const copyTimer = useRef(null);
 
   const section = sections.find(s => s.id === active);
 
-  const copy = (code, key) => {
-    navigator.clipboard.writeText(code);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 1800);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
+
+  const copy = async (code, key) => {
+    clearTimeout(copyTimer.current);
+    try {
+      await copyText(code);
+      setCopied(key);
+    } catch (_) {
+      setCopied(`error:${key}`);
+    }
+    copyTimer.current = setTimeout(() => setCopied(null), 1800);
   };
 
   const toggleDesc = (key) => {
@@ -423,8 +456,8 @@ export default function SQLCheatSheet() {
       flexDirection: "column",
     }}>
       {/* Header */}
-      <div style={{
-        padding: "24px 28px 16px",
+      <header style={{
+        padding: "24px clamp(14px, 4vw, 28px) 16px",
         borderBottom: "1px solid #1a2840",
         background: "linear-gradient(135deg, #0c1525 0%, #090f1e 100%)",
       }}>
@@ -435,27 +468,27 @@ export default function SQLCheatSheet() {
           SQL <span style={{ color: "#60a5fa" }}>Cheat Sheet</span>
           <span style={{ fontSize: 12, color: "#4b5563", fontWeight: 400, marginLeft: 12 }}>auf Deutsch</span>
         </h1>
-        <p style={{ margin: 0, fontSize: 11, color: "#4b5563" }}>
-          Klicke auf <span style={{ color: "#facc15" }}>ⓘ</span> für Erklärungen · Hover über Code zum Kopieren
+        <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>
+          Klicke auf <span style={{ color: "#facc15" }}>ⓘ</span> für Erklärungen · Snippets lassen sich per Schaltfläche kopieren
         </p>
-      </div>
+      </header>
 
       {/* Tabs */}
-      <div style={{
+      <nav aria-label="SQL-Themen" style={{
         display: "flex",
         gap: 2,
-        padding: "10px 28px 0",
+        padding: "10px clamp(14px, 4vw, 28px) 0",
         background: "#0c1525",
         borderBottom: "1px solid #1a2840",
         overflowX: "auto",
         flexWrap: "wrap",
       }}>
         {sections.map(s => (
-          <button key={s.id} onClick={() => setActive(s.id)} style={{
+          <button type="button" key={s.id} aria-pressed={active === s.id} onClick={() => setActive(s.id)} style={{
             background: active === s.id ? "#111e35" : "transparent",
             border: "none",
             borderBottom: active === s.id ? `2px solid ${s.color}` : "2px solid transparent",
-            color: active === s.id ? s.color : "#4b5563",
+            color: active === s.id ? s.color : "#94a3b8",
             padding: "7px 14px",
             fontSize: 11,
             fontWeight: 700,
@@ -469,14 +502,15 @@ export default function SQLCheatSheet() {
             {s.label}
           </button>
         ))}
-      </div>
+      </nav>
 
       {/* Cards */}
-      <div style={{
+      <main style={{
         flex: 1,
-        padding: "20px 28px 40px",
+        width: "100%",
+        padding: "20px clamp(14px, 4vw, 28px) 40px",
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
         gap: 14,
         alignContent: "start",
       }}>
@@ -484,7 +518,7 @@ export default function SQLCheatSheet() {
           const key = `${active}-${idx}`;
           const isOpen = expanded[key];
           return (
-            <div key={idx} style={{
+            <article key={item.title} style={{
               background: "#0c1525",
               border: `1px solid #1a2840`,
               borderRadius: 8,
@@ -508,7 +542,7 @@ export default function SQLCheatSheet() {
                   }}>
                     {item.title}
                   </span>
-                  <button onClick={() => toggleDesc(key)} title="Erklärung anzeigen" style={{
+                  <button type="button" onClick={() => toggleDesc(key)} title="Erklärung anzeigen" aria-expanded={Boolean(isOpen)} aria-controls={`desc-${key}`} style={{
                     background: isOpen ? section.color + "22" : "none",
                     border: `1px solid ${isOpen ? section.color : "#2a3a55"}`,
                     borderRadius: 3,
@@ -524,11 +558,11 @@ export default function SQLCheatSheet() {
                     {isOpen ? "▲ WENIGER" : "ⓘ ERKL."}
                   </button>
                 </div>
-                <button onClick={() => copy(item.code, key)} style={{
+                <button type="button" onClick={() => copy(item.code, key)} aria-label={`${item.title} kopieren`} style={{
                   background: "none",
-                  border: `1px solid ${copied === key ? section.color : "#1a2840"}`,
+                  border: `1px solid ${copied === key ? section.color : copied === `error:${key}` ? "#f87171" : "#334155"}`,
                   borderRadius: 4,
-                  color: copied === key ? section.color : "#4b5563",
+                  color: copied === key ? section.color : copied === `error:${key}` ? "#f87171" : "#94a3b8",
                   fontSize: 9,
                   padding: "3px 8px",
                   cursor: "pointer",
@@ -538,13 +572,13 @@ export default function SQLCheatSheet() {
                   transition: "all 0.2s",
                   flexShrink: 0,
                 }}>
-                  {copied === key ? "✓ KOPIERT" : "KOPIEREN"}
+                  {copied === key ? "✓ KOPIERT" : copied === `error:${key}` ? "NICHT MÖGLICH" : "KOPIEREN"}
                 </button>
               </div>
 
               {/* Description (collapsible) */}
               {isOpen && (
-                <div style={{
+                <div id={`desc-${key}`} style={{
                   padding: "10px 14px",
                   background: section.color + "0d",
                   borderBottom: "1px solid #1a2840",
@@ -560,24 +594,24 @@ export default function SQLCheatSheet() {
               )}
 
               {/* Code */}
-              <pre style={{
+              <pre tabIndex={0} aria-label={`SQL-Beispiel: ${item.title}`} style={{
                 margin: 0,
                 padding: "12px 14px",
                 fontSize: 12,
                 lineHeight: 1.7,
                 overflowX: "auto",
               }}>
-                {highlight(item.code)}
+                <code>{highlight(item.code)}</code>
               </pre>
-            </div>
+            </article>
           );
         })}
-      </div>
+      </main>
 
       {/* Footer legend */}
-      <div style={{
+      <footer style={{
         borderTop: "1px solid #1a2840",
-        padding: "10px 28px",
+        padding: "10px clamp(14px, 4vw, 28px)",
         display: "flex",
         gap: 20,
         flexWrap: "wrap",
@@ -591,11 +625,13 @@ export default function SQLCheatSheet() {
         ].map(l => (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: l.col }} />
-            <span style={{ fontSize: 10, color: "#374151", letterSpacing: 1, textTransform: "uppercase" }}>{l.label}</span>
+            <span style={{ fontSize: 10, color: "#94a3b8", letterSpacing: 1, textTransform: "uppercase" }}>{l.label}</span>
           </div>
         ))}
-        <span style={{ marginLeft: "auto", fontSize: 10, color: "#1f2937" }}>8 Bereiche · {sections.reduce((a,s)=>a+s.items.length,0)} Snippets</span>
-      </div>
+        <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8" }}>{sections.length} Bereiche · {sections.reduce((a,s)=>a+s.items.length,0)} Snippets</span>
+      </footer>
     </div>
   );
 }
+
+export { highlight, sections };

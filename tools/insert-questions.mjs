@@ -38,10 +38,12 @@ const VALID_SEASONS = ['Sommer', 'Winter'];
 const VALID_DIFFS   = ['leicht', 'mittel', 'schwer'];
 
 function validateFile(doc) {
-  if (!doc.source_pdf) throw new Error('source_pdf fehlt');
+  if (typeof doc.source_pdf !== 'string' || !doc.source_pdf.trim()) throw new Error('source_pdf fehlt');
   if (!VALID_PARTS.includes(doc.exam_part)) throw new Error(`exam_part ungültig: ${doc.exam_part}`);
   if (!VALID_SEASONS.includes(doc.exam_season)) throw new Error(`exam_season ungültig: ${doc.exam_season}`);
-  if (!Number.isInteger(doc.exam_year)) throw new Error('exam_year muss Integer sein');
+  if (!Number.isInteger(doc.exam_year) || doc.exam_year < 2000 || doc.exam_year > 2100) {
+    throw new Error('exam_year muss zwischen 2000 und 2100 liegen');
+  }
   if (!Array.isArray(doc.questions) || doc.questions.length === 0) {
     throw new Error('questions[] fehlt oder leer');
   }
@@ -53,11 +55,22 @@ function validateQuestion(q, idx) {
   for (const k of required) {
     if (q[k] === undefined || q[k] === null) throw new Error(`${prefix} Pflichtfeld fehlt: ${k}`);
   }
+  for (const k of ['topic', 'question', 'solution']) {
+    if (typeof q[k] !== 'string' || !q[k].trim()) {
+      throw new Error(`${prefix} ${k} muss ein nicht-leerer Text sein`);
+    }
+  }
   if (!Array.isArray(q.options) || q.options.length !== 4) {
     throw new Error(`${prefix} options muss genau 4 Einträge haben`);
   }
+  if (q.options.some(option => typeof option !== 'string' || !option.trim())) {
+    throw new Error(`${prefix} alle options müssen nicht-leere Texte sein`);
+  }
   if (!Array.isArray(q.correct_indices) || q.correct_indices.length === 0) {
     throw new Error(`${prefix} correct_indices darf nicht leer sein`);
+  }
+  if (new Set(q.correct_indices).size !== q.correct_indices.length) {
+    throw new Error(`${prefix} correct_indices enthält doppelte Werte`);
   }
   for (const i of q.correct_indices) {
     if (!Number.isInteger(i) || i < 0 || i > 3) {
@@ -66,6 +79,12 @@ function validateQuestion(q, idx) {
   }
   if (!VALID_DIFFS.includes(q.difficulty)) {
     throw new Error(`${prefix} difficulty ungültig: ${q.difficulty}`);
+  }
+  if (q.source_page !== undefined && q.source_page !== null && (!Number.isInteger(q.source_page) || q.source_page < 1)) {
+    throw new Error(`${prefix} source_page muss eine positive Ganzzahl sein`);
+  }
+  if (q.hint !== undefined && q.hint !== null && typeof q.hint !== 'string') {
+    throw new Error(`${prefix} hint muss Text oder null sein`);
   }
 }
 
@@ -159,6 +178,7 @@ async function main() {
   }
 
   console.log(`\n\n✨ Fertig: ${totals.inserted}/${totals.total} Fragen aus ${totals.filesOk} Dateien geschrieben${totals.filesErr ? ` · ${totals.filesErr} Dateien fehlerhaft` : ''}${dryRun ? ' (dry-run)' : ''}`);
+  if (totals.failed > 0 || totals.filesErr > 0) process.exitCode = 1;
 }
 
 main().catch(err => {

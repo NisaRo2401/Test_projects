@@ -1,11 +1,38 @@
-const SUPABASE_URL = 'https://ihngrqlfrfyrbvygrbjp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobmdycWxmcmZ5cmJ2eWdyYmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzg2OTEsImV4cCI6MjA5MTk1NDY5MX0.mKIYiQZ0qh_5yx-HACiF1wvZ6NOKdfsEF7Q-OPVtc30';
-
 let _client = null;
 
 function getClient() {
   if (!_client) {
-    _client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    if (typeof window === 'undefined' || typeof window.supabase?.createClient !== 'function') {
+      throw new TypeError('Supabase-Client konnte nicht geladen werden.');
+    }
+
+    const url = window.APP_CONFIG?.supabase?.url || window.SUPABASE_URL;
+    const publicKey = window.APP_CONFIG?.supabase?.publicKey
+      || window.APP_CONFIG?.supabase?.publishableKey
+      || window.APP_CONFIG?.supabase?.anonKey
+      || window.SUPABASE_ANON_KEY;
+
+    if (!url || !publicKey) {
+      throw new Error('Supabase-Konfiguration fehlt.');
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new TypeError('Die konfigurierte Supabase-URL ist ungültig.');
+    }
+    if (parsedUrl.protocol !== 'https:' && parsedUrl.hostname !== 'localhost') {
+      throw new TypeError('Die Supabase-URL muss HTTPS verwenden.');
+    }
+
+    _client = window.supabase.createClient(parsedUrl.href.replace(/\/$/, ''), publicKey, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
+      },
+    });
   }
   return _client;
 }
@@ -13,18 +40,45 @@ function getClient() {
 // Each page sets window.APP_BASE_PATH before loading this script.
 // Root pages (index.html, login.html) use '' — module pages use '../..'.
 function _rootPath(filename) {
-  const base = window.APP_BASE_PATH;
+  const base = String(window.APP_BASE_PATH || '').replace(/\/$/, '');
   if (!base) return filename;
   return base + '/' + filename;
+}
+
+function _fallbackUrl() {
+  return new URL(_rootPath('index.html'), window.location.href);
+}
+
+function getPostLoginUrl() {
+  const fallback = _fallbackUrl();
+  const requestedPath = new URLSearchParams(window.location.search).get('next');
+  if (!requestedPath) return fallback.href;
+
+  try {
+    const requestedUrl = new URL(requestedPath, window.location.origin);
+    const appRoot = new URL('.', fallback);
+    const loginUrl = new URL(_rootPath('login.html'), window.location.href);
+    const isInsideApp = requestedUrl.pathname.startsWith(appRoot.pathname);
+    const isLoginPage = requestedUrl.pathname === loginUrl.pathname;
+    if (requestedUrl.origin === window.location.origin && isInsideApp && !isLoginPage) {
+      return requestedUrl.href;
+    }
+  } catch {
+    // Invalid targets intentionally fall back to the dashboard.
+  }
+  return fallback.href;
 }
 
 async function signIn(email, password) {
   const result = await getClient().auth.signInWithPassword({ email, password });
   if (!result.error && result.data?.user) {
-    await getClient()
+    const { error: profileError } = await getClient()
       .from('profiles')
       .update({ last_login: new Date().toISOString() })
       .eq('id', result.data.user.id);
+    if (profileError) {
+      console.warn('Der Anmeldezeitpunkt konnte nicht gespeichert werden.', profileError.message);
+    }
   }
   return result;
 }
@@ -34,12 +88,14 @@ async function signUp(email, password) {
 }
 
 async function signOut() {
-  await getClient().auth.signOut();
-  window.location.href = _rootPath('login.html');
+  const { error } = await getClient().auth.signOut();
+  if (error) throw error;
+  window.location.assign(_rootPath('login.html'));
 }
 
 async function getSession() {
-  const { data } = await getClient().auth.getSession();
+  const { data, error } = await getClient().auth.getSession();
+  if (error) throw error;
   return data.session;
 }
 
@@ -47,7 +103,10 @@ async function getSession() {
 async function protectPage() {
   const session = await getSession();
   if (!session) {
-    window.location.href = _rootPath('login.html');
+    const loginUrl = new URL(_rootPath('login.html'), window.location.href);
+    const currentPath = window.location.pathname + window.location.search + window.location.hash;
+    loginUrl.searchParams.set('next', currentPath);
+    window.location.replace(loginUrl.href);
     return null;
   }
   return session;
@@ -57,7 +116,7 @@ async function protectPage() {
 async function redirectIfAuthenticated() {
   const session = await getSession();
   if (session) {
-    window.location.href = _rootPath('index.html');
+    window.location.replace(getPostLoginUrl());
     return session;
   }
   return null;
@@ -69,6 +128,7 @@ window.auth = {
   signUp,
   signOut,
   getSession,
+  getPostLoginUrl,
   protectPage,
   redirectIfAuthenticated,
 };

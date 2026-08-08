@@ -7,22 +7,30 @@
 CREATE TABLE IF NOT EXISTS public.questions (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   exam_part        TEXT NOT NULL CHECK (exam_part IN ('AP1','GA1','GA2','WiSo')),
-  exam_year        INT,
-  exam_season      TEXT CHECK (exam_season IN ('Sommer','Winter')),
+  exam_year        INT NOT NULL CHECK (exam_year BETWEEN 2000 AND 2100),
+  exam_season      TEXT NOT NULL CHECK (exam_season IN ('Sommer','Winter')),
   topic            TEXT NOT NULL,
   subtopic         TEXT,
   question         TEXT NOT NULL,
-  options          JSONB NOT NULL,          -- z.B. ["A…","B…","C…","D…"]
-  correct_indices  INT[] NOT NULL,          -- Single- ODER Multi-Select
+  options          JSONB NOT NULL CHECK (
+                     CASE WHEN jsonb_typeof(options) = 'array'
+                       THEN jsonb_array_length(options) = 4
+                       ELSE FALSE
+                     END
+                   ),                       -- z.B. ["A…","B…","C…","D…"]
+  correct_indices  INT[] NOT NULL CHECK (
+                     cardinality(correct_indices) > 0
+                     AND correct_indices <@ ARRAY[0, 1, 2, 3]
+                   ),
   hint             TEXT,
   solution         TEXT NOT NULL,
-  difficulty       TEXT CHECK (difficulty IN ('leicht','mittel','schwer')),
+  difficulty       TEXT NOT NULL CHECK (difficulty IN ('leicht','mittel','schwer')),
   has_diagram      BOOLEAN DEFAULT FALSE,
   diagram_url      TEXT,
   source_pdf       TEXT,
   source_page      INT,
   source_hash      TEXT UNIQUE,             -- deterministische Signatur für Idempotenz
-  created_at       TIMESTAMPTZ DEFAULT NOW()
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS questions_part_topic_idx
   ON public.questions (exam_part, topic);
@@ -33,8 +41,8 @@ CREATE INDEX IF NOT EXISTS questions_topic_idx
 CREATE TABLE IF NOT EXISTS public.user_progress (
   user_id           UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   question_id       UUID REFERENCES public.questions(id) ON DELETE CASCADE,
-  attempts          INT DEFAULT 0,
-  correct_count     INT DEFAULT 0,
+  attempts          INT NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  correct_count     INT NOT NULL DEFAULT 0 CHECK (correct_count >= 0),
   last_answered_at  TIMESTAMPTZ,
   last_correct      BOOLEAN,
   PRIMARY KEY (user_id, question_id)
@@ -45,14 +53,14 @@ CREATE INDEX IF NOT EXISTS user_progress_user_idx
 -- ── Prüfungs-Sessions ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.exam_sessions (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id           UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   exam_part         TEXT NOT NULL CHECK (exam_part IN ('AP1','GA1','GA2','WiSo')),
   started_at        TIMESTAMPTZ DEFAULT NOW(),
   finished_at       TIMESTAMPTZ,
   duration_sec      INT,
-  total_questions   INT,
-  correct_count     INT,
-  score_pct         NUMERIC,
+  total_questions   INT CHECK (total_questions >= 0),
+  correct_count     INT CHECK (correct_count >= 0),
+  score_pct         NUMERIC CHECK (score_pct BETWEEN 0 AND 100),
   grade             TEXT,                    -- '1'…'6' nach IHK-Schlüssel
   answers           JSONB                    -- [{question_id, selected, correct}]
 );
@@ -110,7 +118,8 @@ CREATE POLICY "sessions update own"
   WITH CHECK (auth.uid() = user_id);
 
 -- ── Aggregat-View: Fortschritt pro Thema für eingeloggten User ─
-CREATE OR REPLACE VIEW public.topic_progress AS
+CREATE OR REPLACE VIEW public.topic_progress
+WITH (security_invoker = true) AS
 SELECT
   q.topic,
   q.exam_part,
@@ -123,7 +132,28 @@ LEFT JOIN public.user_progress up
       AND up.user_id = auth.uid()
 GROUP BY q.topic, q.exam_part;
 
--- ── Hinweis Storage-Bucket ───────────────────────────────────
--- Bucket 'ihk-diagrams' (public) bitte manuell im Supabase-Dashboard
--- unter Storage anlegen. Dateien werden mit Pfad
+-- API-Rechte explizit vergeben; der Service-Role-Key der Importwerkzeuge
+-- umgeht RLS weiterhin serverseitig und gehört niemals ins Frontend.
+REVOKE ALL ON TABLE public.questions, public.user_progress, public.exam_sessions FROM anon;
+GRANT SELECT ON TABLE public.questions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.user_progress TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.exam_sessions TO authenticated;
+REVOKE ALL ON TABLE public.topic_progress FROM anon;
+GRANT SELECT ON TABLE public.topic_progress TO authenticated;
+
+-- ── Storage-Bucket für Prüfungsdiagramme ─────────────────────
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'ihk-diagrams',
+  'ihk-diagrams',
+  TRUE,
+  10485760,
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Dateien werden serverseitig mit dem Service-Role-Key unter
 -- <exam_part>-<year>-<season>/<page>.png hochgeladen.

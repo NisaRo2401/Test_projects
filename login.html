@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login – Test Projects Hub</title>
+  <meta name="description" content="Sicherer Zugang zum FIAE Lernhub.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="dark">
+  <title>Anmelden – FIAE Lernhub</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/css/variables.css">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/components.css">
@@ -58,7 +62,7 @@
   </style>
 </head>
 <body>
-  <section class="card login-card">
+  <main class="card login-card">
     <h1>Anmelden</h1>
     <p class="subtitle">Bitte melde dich an, um Zugriff auf das Dashboard zu erhalten.</p>
 
@@ -66,11 +70,11 @@
       <div class="form-group">
         <label class="form-field">
           <span class="form-label">E-Mail-Adresse</span>
-          <input class="form-input" type="email" id="email" placeholder="name@example.com" required>
+          <input class="form-input" type="email" id="email" name="email" placeholder="name@example.com" autocomplete="email" inputmode="email" required>
         </label>
         <label class="form-field">
           <span class="form-label">Passwort</span>
-          <input class="form-input" type="password" id="password" placeholder="••••••••" required>
+          <input class="form-input" type="password" id="password" name="password" placeholder="Mindestens 8 Zeichen" autocomplete="current-password" minlength="8" required>
         </label>
 
         <button class="btn btn-primary btn-full" type="submit" id="submitBtn">Anmelden</button>
@@ -80,17 +84,18 @@
           <button class="btn btn-ghost" type="button" id="toggleBtn">Registrieren</button>
         </div>
 
-        <p class="status" id="statusMsg" role="alert"></p>
+        <p class="status" id="statusMsg" role="status" aria-live="polite"></p>
       </div>
     </form>
 
     <div class="login-footer">
       Falls du bereits angemeldet bist, wirst du automatisch weitergeleitet.
     </div>
-  </section>
+  </main>
 
   <script>window.APP_BASE_PATH = '';</script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous"></script>
   <script src="assets/js/auth.js"></script>
   <script>
     const form       = document.getElementById('authForm');
@@ -98,6 +103,7 @@
     const statusMsg  = document.getElementById('statusMsg');
     const toggleBtn  = document.getElementById('toggleBtn');
     const modeText   = document.getElementById('modeText');
+    const passwordInput = document.getElementById('password');
     let isSignUp = false;
 
     function setStatus(msg, type = '') {
@@ -110,6 +116,7 @@
       modeText.textContent  = isSignUp ? 'Schon einen Account?' : 'Noch keinen Account?';
       toggleBtn.textContent = isSignUp ? 'Anmelden' : 'Registrieren';
       document.querySelector('h1').textContent = isSignUp ? 'Registrieren' : 'Anmelden';
+      passwordInput.autocomplete = isSignUp ? 'new-password' : 'current-password';
     }
 
     toggleBtn.addEventListener('click', () => {
@@ -134,10 +141,15 @@
         if (result.error) throw result.error;
 
         if (isSignUp) {
-          setStatus('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.', 'success');
+          if (result.data?.session) {
+            setStatus('Account erstellt. Du wirst weitergeleitet …', 'success');
+            window.location.replace(auth.getPostLoginUrl());
+          } else {
+            setStatus('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.', 'success');
+          }
         } else {
           setStatus('Erfolgreich angemeldet! Du wirst weitergeleitet …', 'success');
-          window.location.href = 'index.html';
+          window.location.replace(auth.getPostLoginUrl());
         }
       } catch (err) {
         setStatus(err.message || 'Fehler beim Login', 'error');
@@ -148,7 +160,11 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       applyMode();
-      await auth.redirectIfAuthenticated();
+      try {
+        await auth.redirectIfAuthenticated();
+      } catch (error) {
+        setStatus('Der Anmeldedienst ist momentan nicht erreichbar.', 'error');
+      }
     });
   </script>
 </body>

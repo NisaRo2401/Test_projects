@@ -9,6 +9,7 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
 }
 
 body {
@@ -30,6 +31,11 @@ a:hover {
   text-decoration: underline;
 }
 
+:focus-visible {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 3px;
+}
+
 h1, h2, h3, h4 {
   line-height: 1.25;
   font-weight: 700;
@@ -47,4 +53,18 @@ button, input, select, textarea {
 img, svg {
   display: block;
   max-width: 100%;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
